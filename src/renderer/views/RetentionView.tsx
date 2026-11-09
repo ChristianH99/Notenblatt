@@ -34,7 +34,7 @@ export function RetentionView(): React.JSX.Element {
                     <td>{c.name}</td>
                     <td>{c.schoolYear}</td>
                     <td className="num">{c.studentCount}</td>
-                    <td className="num">{c.exams.length}</td>
+                    <td className="num">{c.courses.reduce((n, k) => n + k.exams.length, 0)}</td>
                     <td style={{ textAlign: 'right' }}>
                       <Button variant="quiet" onClick={() => navigate({ view: 'class', classId: c.id })}>
                         Öffnen

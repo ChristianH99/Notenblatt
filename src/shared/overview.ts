@@ -1,4 +1,4 @@
-/** Class grade overview: every student × every exam, per-category and weighted overall averages. */
+/** Grade overview of one course: every member × every exam, per-category and weighted overall averages. */
 import { buildExamModel } from './examModel';
 import { formatMark } from './grading/marks';
 import { finalMark, formatFinalMark, studentAverage, type StudentAverage, type WeightedEntry } from './grading/overall';
@@ -66,7 +66,7 @@ export function parseWeight(raw: string): number | null {
 }
 
 export function buildOverview(d: OverviewData): Overview {
-  const system = d.schoolClass.gradingSystem;
+  const system = d.course.gradingSystem;
   const cats = [...d.categories].sort((a, b) => a.position - b.position || a.id - b.id);
   const catPos = new Map(cats.map((c, i) => [c.id, i]));
   const exams = [...d.exams].sort(
@@ -81,7 +81,7 @@ export function buildOverview(d: OverviewData): Overview {
     const category = cats.find((c) => c.id === e.categoryId) ?? null;
     let reason: string | null = null;
     if (!category) reason = 'Keine Kategorie zugeordnet';
-    else if (e.scheme !== system) reason = system === 'NP15' ? 'Bewertung in Noten 1–6, Klasse rechnet in Notenpunkten' : 'Bewertung in Notenpunkten, Klasse rechnet in Noten 1–6';
+    else if (e.scheme !== system) reason = system === 'NP15' ? 'Bewertung in Noten 1–6, Fach rechnet in Notenpunkten' : 'Bewertung in Notenpunkten, Fach rechnet in Noten 1–6';
     return { exam: e, title: examTitle(e), category, included: reason === null, reason, avgHundredths: m.stats.gradeAvgHundredths };
   });
   const weights = new Map(cats.map((c) => [c.id, c.weightC]));
@@ -101,10 +101,10 @@ export function buildOverview(d: OverviewData): Overview {
       return { value, text: scheme === 'NP15' ? formatMark(value, scheme) : formatGrade10(value), absent: false };
     });
     const avg = studentAverage(system, weights, entries);
-    const final = finalMark(system, avg.exact, d.schoolClass.finalRounding, d.schoolClass.finalDigits);
-    return { student: st, nr: i + 1, cells, avg, final, finalText: formatFinalMark(system, final, d.schoolClass.finalDigits) };
+    const final = finalMark(system, avg.exact, d.course.finalRounding, d.course.finalDigits);
+    return { student: st, nr: i + 1, cells, avg, final, finalText: formatFinalMark(system, final, d.course.finalDigits) };
   });
-  return { system, showFinal: d.schoolClass.finalRounding !== 'none', categories: cats, columns, rows };
+  return { system, showFinal: d.course.finalRounding !== 'none', categories: cats, columns, rows };
 }
 
 /** CSV of the overview (same format as the exam CSV: ";" separator, BOM, decimal comma). */

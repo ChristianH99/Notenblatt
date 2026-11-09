@@ -23,7 +23,7 @@ src/preload/     contextBridge: window.notenblatt.invoke(method, arg)
 src/shared/      pure TypeScript, no I/O, no DOM — used by main, renderer, print and tests
   grading/         units (quarter points), np15, lin6, stats, keys, marks (mark-only exams),
                    overall (weighted average per student, BigInt rationals)
-  overview.ts      class overview model (students × exams, Ø per category, Ø gesamt) + CSV
+  overview.ts      course overview model (members × exams, Ø per category, Ø gesamt) + CSV
   parse/           number parsing/formatting (German), name-list parsing, collation
   examModel.ts     aligns ExamData into a grid model + statistics
   csv.ts, labels.ts, schoolYear.ts, api.ts (IPC contract), types.ts
@@ -32,7 +32,8 @@ src/renderer/    React 19 + Zustand, CSS Modules + tokens.css, no UI kit
   grid/ScoreGrid   spreadsheet-like grid (roving focus, keyboard, clipboard, task menu)
   grid/MarkGrid    single-column grid for mark-only exams
   views/           Shell (nav, status bar), StartupGate (password / unreachable / in use),
-                   Class (tabs: Notenübersicht, Schüler/innen und Prüfungen, Gewichtung),
+                   Class (students, list of subjects),
+                   Course = subject of a class (tabs: Notenübersicht, Prüfungen und Schüler/innen, Gewichtung),
                    Exam (meta bar, toolbar, panel), Settings, Help
   dialogs/         all modal dialogs (native <dialog>)
   print/           print route (A4 landscape pages)
@@ -71,11 +72,11 @@ All points are integers in quarter points (`qp`, 1 point = 4 qp). Grade decision
 - Renderer storage is never used (ESLint forbids `localStorage`/`sessionStorage`/`indexedDB` in `src/renderer`). The window session is an in-memory partition.
 - Logs (`src/main/log.ts`) accept only numbers and identifier-like strings, go to stderr only, never to a file.
 - Packaged builds burn Electron fuses (no run-as-Node, no `NODE_OPTIONS`/`--inspect`, app only from an integrity-checked `app.asar`) and ignore the `NOTENBLATT_*` development variables (`devEnv()` in `src/main/index.ts`).
-- After deleting a student, class or exam: transaction → `wal_checkpoint(TRUNCATE)` → `VACUUM` → `wal_checkpoint(TRUNCATE)`. `secure_delete = ON`. The integration test checks the raw bytes of `.db`, `-wal`, `-shm`.
+- After deleting a student, class, course or exam: transaction → `wal_checkpoint(TRUNCATE)` → `VACUUM` → `wal_checkpoint(TRUNCATE)`. `secure_delete = ON`. The integration test checks the raw bytes of `.db`, `-wal`, `-shm`.
 
 ## Overall average
 
-`studentAverage()` in `grading/overall.ts` takes the class's grading system, the category weights (hundredths) and the student's grades (NP or grade × 10) and returns per-category means, the weighted overall average Σ w·g / Σ w truncated to hundredths, and the exact fraction. `finalMark()` rounds that exact fraction according to the class's rule (`half_up` | `half_favor` | `none`) and precision (whole / one decimal for grades 1–6). `buildOverview()` collects the grades from `ExamData` via `buildExamModel()` (point exams → NP/grade from the score sum or the directly entered sum in `score_total`; mark-only exams → the entered mark) and excludes exams without category or in another grading system. A fast-check property compares it with an independent fraction computation.
+`studentAverage()` in `grading/overall.ts` takes the course's grading system, the category weights (hundredths) and the student's grades (NP or grade × 10) and returns per-category means, the weighted overall average Σ w·g / Σ w truncated to hundredths, and the exact fraction. `finalMark()` rounds that exact fraction according to the course's rule (`half_up` | `half_favor` | `none`) and precision (whole / one decimal for grades 1–6). `buildOverview()` collects the grades from `ExamData` via `buildExamModel()` (point exams → NP/grade from the score sum or the directly entered sum in `score_total`; mark-only exams → the entered mark) and excludes exams without category or in another grading system. A fast-check property compares it with an independent fraction computation.
 
 ## Adding a grading key
 
@@ -86,6 +87,6 @@ Example: a scheme "Noten 1–6 (ganzzahlig, 50 %-Grenze)".
 3. **DB** – add a migration to `MIGRATIONS` in `src/main/db/schema.ts` that rebuilds the `CHECK (scheme IN (...))` constraint (SQLite cannot alter a CHECK in place: create new table, copy, drop, rename — inside the migration transaction). Never edit an existing migration.
 4. **IPC** – add the value to the `scheme` enum in `src/main/ipc/schemas.ts`.
 5. **Statistics** – handle the scheme in `rowResult()` and `computeStats()` (`grading/stats.ts`): grade, group 1–6, `low`, counts, average.
-6. **UI** – add the option to the class's grading-system select (`views/ClassGrading.tsx`), the template in `views/SettingsView.tsx`, the label in `dialogs/NewExamDialog.tsx`, the key table and chart bars (`views/keyTables.tsx`), result text (`examModel.ts`), full key (`grading/keys.ts`) and the print view.
+6. **UI** – add the option to the course's grading-system select (`views/CourseGrading.tsx`), the template in `views/SettingsView.tsx`, the label in `dialogs/NewExamDialog.tsx`, the key table and chart bars (`views/keyTables.tsx`), result text (`examModel.ts`), full key (`grading/keys.ts`) and the print view.
 7. **Tests** – golden values from the source spreadsheet in `tests/unit/engine.test.ts`, an independent reference in `tests/unit/reference.ts` plus an exhaustive comparison over all M and P, properties (monotonic, bounds), and a stats edge-case test. Keep `src/shared` coverage ≥ 95 %.
 8. Document the formula in the help page (`views/HelpView.tsx`).

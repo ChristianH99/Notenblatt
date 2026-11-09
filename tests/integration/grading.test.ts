@@ -18,16 +18,25 @@ beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nb-gr-'));
   mgr = new DbManager(dir, { logN: 12, heartbeatMs: 3_600_000 });
   repo = mgr.open();
+  // These tests are written in Notenpunkte; the app's defaults for new subjects are Noten 1–6 with one decimal.
+  repo.setSetting('defaultGradingSystem', 'NP15');
+  repo.setSetting('defaultRoundingDigits', '0');
 });
 afterEach(() => {
   mgr.shutdown(false);
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-const exam = (classId: number, over: Partial<NewExamInput> = {}): NewExamInput => ({
-  classId, kind: 'Schulaufgabe', number: '1', subject: 'Deutsch', examDate: '2025-10-01', teacher: '',
+const exam = (courseId: number, over: Partial<NewExamInput> = {}): NewExamInput => ({
+  courseId, kind: 'Schulaufgabe', number: '1', examDate: '2025-10-01', teacher: '',
   stepQp: 2, taskCount: 1, copyFromExamId: null, categoryId: null, entryMode: 'points', ...over,
 });
+
+/** A class with one subject ("Deutsch"): cls = class id (students), c = course id (exams, grading). */
+const mk = (name: string, subject = 'Deutsch'): { cls: number; c: number } => {
+  const cls = repo.createClass(name, '2025/26');
+  return { cls, c: repo.createCourse(cls, subject) };
+};
 
 describe('migration from schema version 1', () => {
   it('adds categories to existing classes and assigns existing exams', () => {
@@ -39,36 +48,37 @@ describe('migration from schema version 1', () => {
     db.prepare("INSERT INTO exam(id, class_id, kind, subject, exam_date, scheme) VALUES (1, 1, 'Test', 'Bio', '2025-01-01', 'LIN6')").run();
     db.close();
     const m = openDatabase(f);
-    const cats = m.prepare('SELECT name, weight_c, default_mode FROM grade_category WHERE class_id = 1 ORDER BY position').all();
+    // Migration 4 turns the class's subject "Bio" into a course that carries the categories and the system.
+    expect(m.prepare('SELECT id, class_id, subject, grading_system FROM course').all()).toEqual([{ id: 1, class_id: 1, subject: 'Bio', grading_system: 'LIN6' }]);
+    const cats = m.prepare('SELECT name, weight_c, default_mode FROM grade_category WHERE course_id = 1 ORDER BY position').all();
     expect(cats).toEqual([
       { name: 'Schriftlich', weight_c: 300, default_mode: 'points' },
       { name: 'Mündlich', weight_c: 100, default_mode: 'grade' },
     ]);
-    const e = m.prepare('SELECT e.entry_mode, c.name FROM exam e JOIN grade_category c ON c.id = e.category_id').get();
-    expect(e).toEqual({ entry_mode: 'points', name: 'Schriftlich' });
-    expect(m.prepare('SELECT grading_system FROM school_class').get()).toEqual({ grading_system: 'LIN6' });
+    const e = m.prepare('SELECT e.entry_mode, e.course_id, c.name FROM exam e JOIN grade_category c ON c.id = e.category_id').get();
+    expect(e).toEqual({ entry_mode: 'points', course_id: 1, name: 'Schriftlich' });
     m.close();
   });
 });
 
 describe('categories', () => {
-  it('new classes take the template from the settings; later template changes do not affect them', () => {
-    const a = repo.createClass('A', '2025/26');
+  it('new courses take the template from the settings; later template changes do not affect them', () => {
+    const { c: a } = mk('A');
     expect(repo.categories(a).map((c) => [c.name, c.weightC, c.defaultMode])).toEqual([
       ['Schriftlich', 300, 'points'],
       ['Mündlich', 100, 'grade'],
     ]);
     repo.setSetting('categoryTemplate', JSON.stringify([{ name: 'Groß', weightC: 200, defaultMode: 'points' }, { name: 'Klein', weightC: 100, defaultMode: 'grade' }]));
     repo.setSetting('defaultGradingSystem', 'LIN6');
-    const b = repo.createClass('B', '2025/26');
+    const { c: b } = mk('B');
     expect(repo.categories(b).map((c) => c.name)).toEqual(['Groß', 'Klein']);
-    expect(repo.getClass(b).gradingSystem).toBe('LIN6');
+    expect(repo.getCourse(b).gradingSystem).toBe('LIN6');
     expect(repo.categories(a).map((c) => c.name)).toEqual(['Schriftlich', 'Mündlich']);
-    expect(repo.getClass(a).gradingSystem).toBe('NP15');
+    expect(repo.getCourse(a).gradingSystem).toBe('NP15');
   });
 
   it('add, update, move and delete with rules', () => {
-    const c = repo.createClass('A', '2025/26');
+    const { cls, c } = mk('A');
     const [w, o] = repo.categories(c);
     const extra = repo.addCategory(c, { name: 'Referat', weightC: 150, defaultMode: 'grade' });
     repo.updateCategory(w!.id, { weightC: 200, name: undefined, defaultMode: undefined });
@@ -86,17 +96,25 @@ describe('categories', () => {
     repo.deleteCategory(extra);
     repo.deleteCategory(w!.id);
     expect(() => repo.deleteCategory(o!.id)).toThrow(UserError);
-    const other = repo.createClass('B', '2025/26');
+    // categories belong to one course: not usable in another subject of the same class or in another class
+    const otherSubject = repo.createCourse(cls, 'Englisch');
+    expect(() => repo.createExam(exam(otherSubject, { categoryId: o!.id }))).toThrow(/gehört nicht/);
+    const { c: other } = mk('B');
     expect(() => repo.createExam(exam(other, { categoryId: o!.id }))).toThrow(/gehört nicht/);
+    expect(repo.categories(otherSubject)).toHaveLength(2);
   });
 
-  it('copying a class keeps its weighting, grading system and rounding', () => {
-    const a = repo.createClass('A', '2025/26');
-    repo.updateCategory(repo.categories(a)[0]!.id, { weightC: 250 });
-    repo.updateClassGrading(a, { gradingSystem: 'LIN6', finalRounding: 'half_favor', finalDigits: 1 });
+  it('copying a class keeps the weighting, grading system and rounding of each subject', () => {
+    const { cls: a, c } = mk('A');
+    const physik = repo.createCourse(a, 'Physik');
+    repo.updateCategory(repo.categories(c)[0]!.id, { weightC: 250 });
+    repo.updateCourseGrading(c, { gradingSystem: 'LIN6', finalRounding: 'half_favor', finalDigits: 1 });
     const b = repo.copyClass(a, 'A2', '2026/27');
-    expect(repo.categories(b).map((c) => c.weightC)).toEqual([250, 100]);
-    expect(repo.getClass(b)).toMatchObject({ gradingSystem: 'LIN6', finalRounding: 'half_favor', finalDigits: 1 });
+    const [deutsch, physik2] = repo.courses(b);
+    expect(deutsch).toMatchObject({ subject: 'Deutsch', gradingSystem: 'LIN6', finalRounding: 'half_favor', finalDigits: 1 });
+    expect(repo.categories(deutsch!.id).map((x) => x.weightC)).toEqual([250, 100]);
+    expect(physik2).toMatchObject({ subject: 'Physik', gradingSystem: repo.getCourse(physik).gradingSystem, finalRounding: 'half_up' });
+    expect(repo.categories(physik2!.id).map((x) => x.weightC)).toEqual([300, 100]);
   });
 
   it('settings template is validated; rounding defaults come from the settings', () => {
@@ -105,28 +123,32 @@ describe('categories', () => {
     expect(parseCategoryTemplate(JSON.stringify([{ name: 'x', weightC: 0, defaultMode: 'points' }]))[0]?.name).toBe('Schriftlich');
     expect(parseCategoryTemplate(JSON.stringify([{ name: 'x', weightC: 5, defaultMode: 'oral' }]))[0]?.name).toBe('Schriftlich');
     expect(parseCategoryTemplate(JSON.stringify([{ name: 'x', weightC: 5, defaultMode: 'grade' }]))).toEqual([{ name: 'x', weightC: 5, defaultMode: 'grade' }]);
-    expect(repo.getClass(repo.createClass('X', '2025/26'))).toMatchObject({ finalRounding: 'half_up', finalDigits: 0 });
+    expect(repo.getCourse(mk('X').c)).toMatchObject({ finalRounding: 'half_up', finalDigits: 0 });
     repo.setSetting('defaultRounding', 'none');
     repo.setSetting('defaultRoundingDigits', '1');
-    expect(repo.getClass(repo.createClass('Y', '2025/26'))).toMatchObject({ finalRounding: 'none', finalDigits: 1 });
+    expect(repo.getCourse(mk('Y').c)).toMatchObject({ finalRounding: 'none', finalDigits: 1 });
   });
 });
 
-describe('grading system per class', () => {
-  it('exams take the class system; changing it switches all exams; refused while oral marks exist', () => {
-    const c = repo.createClass('A', '2025/26');
-    const [s1] = repo.addStudents(c, [{ lastName: 'A', firstName: '' }]);
+describe('grading system per course', () => {
+  it('exams take the course system; changing it switches all exams of the course only; refused while oral marks exist', () => {
+    const { cls, c } = mk('A');
+    const [s1] = repo.addStudents(cls, [{ lastName: 'A', firstName: '' }]);
+    const sibling = repo.createCourse(cls, 'Englisch');
+    const sw = repo.createExam(exam(sibling));
     const w = repo.createExam(exam(c));
     const o = repo.createExam(exam(c, { categoryId: repo.categories(c)[1]!.id, entryMode: 'grade', kind: 'Abfrage' }));
     expect(repo.getExamData(w).exam.scheme).toBe('NP15');
-    repo.updateClassGrading(c, { gradingSystem: 'LIN6' });
+    repo.updateCourseGrading(c, { gradingSystem: 'LIN6' });
     expect([repo.getExamData(w).exam.scheme, repo.getExamData(o).exam.scheme]).toEqual(['LIN6', 'LIN6']);
+    expect(repo.getExamData(sw).exam.scheme).toBe('NP15'); // the other subject keeps its system
+    expect(repo.getCourse(sibling).gradingSystem).toBe('NP15');
     repo.setMarks(o, [{ studentId: s1!, value: 23 }]);
-    expect(() => repo.updateClassGrading(c, { gradingSystem: 'NP15' })).toThrow(/„Abfrage 1 · Deutsch · 01\.10\.2025“ sind bereits Noten/);
-    expect(repo.getClass(c).gradingSystem).toBe('LIN6');
-    repo.updateClassGrading(c, { gradingSystem: 'LIN6', finalRounding: 'none' }); // unchanged system is fine
+    expect(() => repo.updateCourseGrading(c, { gradingSystem: 'NP15' })).toThrow(/„Abfrage 1 · Deutsch · 01\.10\.2025“ sind bereits Noten/);
+    expect(repo.getCourse(c).gradingSystem).toBe('LIN6');
+    repo.updateCourseGrading(c, { gradingSystem: 'LIN6', finalRounding: 'none' }); // unchanged system is fine
     repo.setMarks(o, [{ studentId: s1!, value: null }]);
-    repo.updateClassGrading(c, { gradingSystem: 'NP15' });
+    repo.updateCourseGrading(c, { gradingSystem: 'NP15' });
     expect(repo.getExamData(o).exam.scheme).toBe('NP15');
     const n = repo.createExam(exam(c));
     expect(repo.getExamData(n).exam.scheme).toBe('NP15');
@@ -146,25 +168,27 @@ describe('grading system per class', () => {
     d2.prepare('INSERT INTO mark(exam_id, student_id, value) VALUES (1, 1, 23)').run();
     d2.close();
     const m = openDatabase(f);
-    expect(m.prepare('SELECT id, grading_system FROM school_class ORDER BY id').all()).toEqual([
-      { id: 1, grading_system: 'LIN6' },
-      { id: 2, grading_system: 'NP15' },
+    // (After migration 4 the system lives on the course; each class had one subject "B".)
+    expect(m.prepare('SELECT class_id, subject, grading_system FROM course ORDER BY class_id').all()).toEqual([
+      { class_id: 1, subject: 'B', grading_system: 'LIN6' },
+      { class_id: 2, subject: 'B', grading_system: 'NP15' },
     ]);
     expect(m.prepare('SELECT id, scheme FROM exam ORDER BY id').all()).toEqual([
       { id: 1, scheme: 'LIN6' },
       { id: 2, scheme: 'LIN6' },
       { id: 3, scheme: 'NP15' },
     ]);
-    expect(m.prepare('SELECT final_rounding, final_digits FROM school_class WHERE id = 1').get()).toEqual({ final_rounding: 'half_up', final_digits: 0 });
+    expect(m.prepare('SELECT final_rounding, final_digits FROM course WHERE class_id = 1').get()).toEqual({ final_rounding: 'half_up', final_digits: 0 });
     expect(() => m.prepare('SELECT avg_method FROM school_class').get()).toThrow();
+    expect(m.prepare('SELECT value FROM mark').all()).toEqual([{ value: 23 }]);
     m.close();
   });
 });
 
 describe('directly entered sums', () => {
   it('a sum replaces the task entries; tasks are locked until the sum is cleared', () => {
-    const c = repo.createClass('A', '2025/26');
-    const [s1, s2] = repo.addStudents(c, [{ lastName: 'Albers', firstName: 'A' }, { lastName: 'Brandt', firstName: 'B' }]);
+    const { cls, c } = mk('A');
+    const [s1, s2] = repo.addStudents(cls, [{ lastName: 'Albers', firstName: 'A' }, { lastName: 'Brandt', firstName: 'B' }]);
     const e = repo.createExam(exam(c, { taskCount: 2 }));
     const [t1, t2] = repo.tasks(e);
     repo.updateTask(t1!.id, { maxQp: 40 }); // 10
@@ -198,9 +222,9 @@ describe('directly entered sums', () => {
 });
 
 describe('overview', () => {
-  it('every exam weighted with its category (3 : 1), direct sums count, final mark rounded per class rule', () => {
-    const c = repo.createClass('A', '2025/26');
-    const [s1, s2, s3] = repo.addStudents(c, [
+  it('every exam weighted with its category (3 : 1), direct sums count, final mark rounded per course rule', () => {
+    const { cls, c } = mk('A');
+    const [s1, s2, s3] = repo.addStudents(cls, [
       { lastName: 'Albers', firstName: '' },
       { lastName: 'Brandt', firstName: '' },
       { lastName: 'Conrad', firstName: '' },
@@ -229,11 +253,11 @@ describe('overview', () => {
     expect(formatAvg(row('Brandt').avg.overallHundredths)).toBe('4,00');
     expect(o.showFinal).toBe(true);
     expect(o.rows.map((r) => r.finalText)).toEqual(['13', '4', '11']);
-    // weight change in the class changes the result: oral ×3 → Albers (45 + 27 + 36)/9 = 12
+    // weight change in the course changes the result: oral ×3 → Albers (45 + 27 + 36)/9 = 12
     repo.updateCategory(oral!.id, { weightC: 300 });
     expect(formatAvg(buildOverview(repo.overview(c)).rows[0]!.avg.overallHundredths)).toBe('12,00');
     // rounding "none" hides the final mark
-    repo.updateClassGrading(c, { finalRounding: 'none' });
+    repo.updateCourseGrading(c, { finalRounding: 'none' });
     const none = buildOverview(repo.overview(c));
     expect(none.showFinal).toBe(false);
     expect(none.rows[0]!.finalText).toBe('');

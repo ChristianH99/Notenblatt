@@ -20,8 +20,12 @@ async function seed(page: Page): Promise<number> {
     return { lastName: i < 20 ? l : `${l}-Neumeier`, firstName: f };
   });
   await invoke(page, 'students.add', { classId, names });
+  // Written in Notenpunkte; the app's default for new subjects is Noten 1–6.
+  await invoke(page, 'settings.set', { key: 'defaultGradingSystem', value: 'NP15' });
+  const courseId = await invoke<number>(page, 'courses.create', { classId, subject: 'Mathematik' });
+  await invoke(page, 'courses.create', { classId, subject: 'Physik' });
   const examId = await invoke<number>(page, 'exams.create', {
-    classId, kind: 'Schulaufgabe', number: '1', subject: 'Mathematik', examDate: '2025-11-20', teacher: 'Frau Huber',
+    courseId, kind: 'Schulaufgabe', number: '1', examDate: '2025-11-20', teacher: 'Frau Huber',
     stepQp: 2, taskCount: 10, copyFromExamId: null, categoryId: null, entryMode: 'points',
   });
   let data = await invoke<ExamDataLite>(page, 'exams.get', { id: examId });
@@ -135,11 +139,11 @@ test('1280×720 laptop: class of 32, 10 tasks fully usable', async () => {
   await page.keyboard.press('End');
   expect(await onTop(page, '#cell-31-9')).toBe(true);
   const setSystem = async (v: 'LIN6' | 'NP15'): Promise<void> => {
-    await navClick(page, '10b');
+    await navClick(page, 'Mathematik');
     await page.getByRole('tab', { name: 'Gewichtung' }).click();
     await page.locator('#cls-system').selectOption(v);
     await expect(page.locator('#cls-system')).toHaveValue(v);
-    await navClick(page, 'Schulaufgabe 1 · Mathematik · 20.11.2025');
+    await navClick(page, 'Schulaufgabe 1 · 20.11.2025');
   };
   await setSystem('LIN6');
   await expect(page.locator('#verbal-0')).not.toHaveText('');
@@ -155,6 +159,14 @@ test('1280×720 laptop: class of 32, 10 tasks fully usable', async () => {
   await page.getByRole('navigation', { name: 'Klassen und Prüfungen' }).getByRole('button', { name: '10b' }).click();
   await assertNoOverflow(page);
   await page.screenshot({ path: path.join(SCREENSHOTS, 'class-1280x720.png') });
+  await navClick(page, 'Mathematik');
+  await expect(page.getByRole('table', { name: 'Notenübersicht' })).toBeVisible();
+  await assertNoOverflow(page);
+  await page.screenshot({ path: path.join(SCREENSHOTS, 'course-overview-1280x720.png') });
+  await page.getByRole('tab', { name: 'Prüfungen und Schüler/innen' }).click();
+  await expect(page.getByRole('table', { name: 'Schüler/innen im Fach' }).locator('tbody tr')).toHaveCount(32);
+  await assertNoOverflow(page);
+  await page.screenshot({ path: path.join(SCREENSHOTS, 'course-exams-1280x720.png') });
   await page.getByRole('button', { name: 'Einstellungen' }).click();
   await assertNoOverflow(page);
   await page.screenshot({ path: path.join(SCREENSHOTS, 'settings-1280x720.png') });

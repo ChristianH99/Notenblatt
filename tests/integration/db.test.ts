@@ -26,24 +26,26 @@ afterEach(() => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-function examInput(classId: number, over: Partial<NewExamInput> = {}): NewExamInput {
+function examInput(courseId: number, over: Partial<NewExamInput> = {}): NewExamInput {
   return {
-    classId, kind: 'Kurzarbeit', number: '2.', subject: 'Biologie', examDate: '2025-03-19', teacher: 'Frau X',
+    courseId, kind: 'Kurzarbeit', number: '2.', examDate: '2025-03-19', teacher: 'Frau X',
     stepQp: 2, taskCount: 3, copyFromExamId: null, categoryId: null, entryMode: 'points', ...over,
   };
 }
 
-function setup(): { classId: number; examId: number; students: number[]; tasks: number[] } {
+/** Class F-A11a with three students and the subject Biologie (one exam, all scores 0,5). */
+function setup(): { classId: number; courseId: number; examId: number; students: number[]; tasks: number[] } {
   const classId = repo.createClass('F-A11a', '2024/25');
   const students = repo.addStudents(classId, [
     { lastName: 'Zqxwvy', firstName: 'Testperson' },
     { lastName: 'Ärger', firstName: 'Anna' },
     { lastName: 'Bauer', firstName: 'Ben' },
   ]);
-  const examId = repo.createExam(examInput(classId));
+  const courseId = repo.createCourse(classId, 'Biologie');
+  const examId = repo.createExam(examInput(courseId));
   const tasks = repo.tasks(examId).map((t) => t.id);
   repo.setScores(examId, students.flatMap((s) => tasks.map((t) => ({ taskId: t, studentId: s, qp: 2 }))));
-  return { classId, examId, students, tasks };
+  return { classId, courseId, examId, students, tasks };
 }
 
 function rawContains(needle: string): string[] {
@@ -97,28 +99,48 @@ describe('classes, students, exams', () => {
     expect(d.scores.filter((x) => x.studentId === id)).toHaveLength(0);
   });
 
-  it('class tree groups by school year, newest first, exams newest first', () => {
+  it('class tree: school year newest first → class → subjects (alphabetical) → exams newest first', () => {
     const a = repo.createClass('7a', '2023/24');
     const b = repo.createClass('8a', '2025/26');
-    repo.createExam(examInput(b, { examDate: '2025-10-01' }));
-    repo.createExam(examInput(b, { examDate: '2026-01-10', subject: 'Chemie' }));
+    const chemie = repo.createCourse(b, 'Chemie');
+    const bio = repo.createCourse(b, 'Biologie');
+    repo.createCourse(a, 'Biologie');
+    repo.createExam(examInput(bio, { examDate: '2025-10-01' }));
+    repo.createExam(examInput(bio, { examDate: '2026-02-01', kind: 'Test' }));
+    repo.createExam(examInput(chemie, { examDate: '2026-01-10' }));
     const tree = repo.classTree();
     expect(tree.map((c) => c.id)).toEqual([b, a]);
-    expect(tree[0]?.exams.map((e) => e.subject)).toEqual(['Chemie', 'Biologie']);
+    expect(tree[0]?.courses.map((k) => k.subject)).toEqual(['Biologie', 'Chemie']);
+    expect(tree[0]?.courses[0]?.exams.map((e) => [e.kind, e.subject])).toEqual([['Test', 'Biologie'], ['Kurzarbeit', 'Biologie']]);
+    expect(tree[0]?.courses[1]?.exams.map((e) => e.subject)).toEqual(['Chemie']);
+    expect(tree[1]?.courses.map((k) => [k.subject, k.exams.length])).toEqual([['Biologie', 0]]);
     expect(repo.subjects()).toEqual(['Biologie', 'Chemie']);
-    expect(repo.allExams()[0]?.title).toBe('Kurzarbeit 2 · Chemie · 10.01.2026');
+    expect(repo.allExams()[0]).toMatchObject({ title: 'Test 2 · Biologie · 01.02.2026', className: '8a', subject: 'Biologie' });
   });
 
-  it('copies a class with names but without exams', () => {
-    const { classId } = setup();
+  it('copies a class with names and subjects (members, weighting) but without exams', () => {
+    const { classId, courseId, students } = setup();
+    const latein = repo.createCourse(classId, 'Latein');
+    repo.setCourseMember(latein, students[0] as number, false);
+    repo.updateCategory(repo.categories(courseId)[1]!.id, { weightC: 200 });
     const copy = repo.copyClass(classId, 'F-A12a', '2025/26');
-    expect(repo.listStudents(copy).map((s) => s.lastName)).toEqual(['Ärger', 'Bauer', 'Zqxwvy']);
-    expect(repo.classTree().find((c) => c.id === copy)?.exams).toEqual([]);
+    const newStudents = repo.listStudents(copy);
+    expect(newStudents.map((s) => s.lastName)).toEqual(['Ärger', 'Bauer', 'Zqxwvy']);
+    const item = repo.classTree().find((c) => c.id === copy)!;
+    expect(item.courses.map((k) => [k.subject, k.exams.length, k.memberIds.length])).toEqual([['Biologie', 0, 3], ['Latein', 0, 2]]);
+    // members are the copied students, not the originals
+    const lateinCopy = item.courses[1]!;
+    expect(lateinCopy.memberIds.every((id) => newStudents.some((s) => s.id === id))).toBe(true);
+    expect(repo.courseStudents(lateinCopy.id).map((s) => s.lastName)).toEqual(['Ärger', 'Bauer']);
+    expect(item.courses[0]!.categories.map((c) => c.weightC)).toEqual([300, 200]);
+    // the source is unchanged
+    expect(repo.memberIds(latein)).toHaveLength(2);
+    expect(repo.classTree().find((c) => c.id === classId)!.courses[0]!.exams).toHaveLength(1);
   });
 
   it('validates input', () => {
     expect(() => repo.createClass('  ', '2025/26')).toThrow(UserError);
-    const { classId, examId, students, tasks } = setup();
+    const { classId, courseId, examId, students, tasks } = setup();
     expect(() => repo.updateClass(classId, '', '2025/26')).toThrow(UserError);
     expect(() => repo.updateStudent(students[0] as number, ' ', '')).toThrow(UserError);
     expect(() => repo.updateStudent(99999, 'X', '')).toThrow(UserError);
@@ -128,8 +150,11 @@ describe('classes, students, exams', () => {
     expect(() => repo.setScores(examId, [{ taskId: tasks[0] as number, studentId: students[0] as number, qp: 6 }])).toThrow(/höchstens 1 Punkte/);
     expect(() => repo.setScores(examId, [{ taskId: 9999, studentId: students[0] as number, qp: 0 }])).toThrow(UserError);
     expect(() => repo.setScores(examId, [{ taskId: tasks[0] as number, studentId: 9999, qp: 0 }])).toThrow(UserError);
-    expect(() => repo.createExam(examInput(classId, { taskCount: 0 }))).toThrow(UserError);
-    expect(() => repo.createExam(examInput(classId, { subject: ' ' }))).toThrow(UserError);
+    expect(() => repo.createExam(examInput(courseId, { taskCount: 0 }))).toThrow(UserError);
+    expect(() => repo.createExam(examInput(9999))).toThrow(/Fach wurde nicht gefunden/);
+    expect(() => repo.createCourse(classId, ' ')).toThrow(/Bitte ein Fach/);
+    expect(() => repo.createCourse(classId, 'biologie ')).toThrow(/bereits das Fach „biologie“/);
+    expect(() => repo.createCourse(9999, 'Physik')).toThrow(UserError);
     expect(() => repo.getExamData(9999)).toThrow(UserError);
   });
 
@@ -169,16 +194,16 @@ describe('point step', () => {
     expect(() => repo.updateExam(examId, { stepQp: 2 })).toThrow(/max\. Punkte 1,25/);
   });
 
-  it('changing the class grading system switches its exams and keeps scores', () => {
-    const { classId, examId } = setup();
-    repo.updateClassGrading(classId, { gradingSystem: 'LIN6' });
-    repo.updateExam(examId, { subject: 'Chemie' });
+  it('changing the course grading system switches its exams and keeps scores; the subject comes from the course', () => {
+    const { courseId, examId } = setup();
+    repo.updateCourseGrading(courseId, { gradingSystem: 'LIN6' });
+    repo.renameCourse(courseId, 'Chemie');
     const d = repo.getExamData(examId);
     expect(d.exam.scheme).toBe('LIN6');
     expect(d.exam.subject).toBe('Chemie');
+    expect(d.course).toMatchObject({ id: courseId, subject: 'Chemie', gradingSystem: 'LIN6' });
     expect(d.scores).toHaveLength(9);
     expect(() => repo.updateExam(examId, { kind: ' ' })).toThrow(UserError);
-    expect(() => repo.updateExam(examId, { subject: '' })).toThrow(UserError);
   });
 });
 
@@ -210,7 +235,7 @@ describe('tasks', () => {
   it('refuses lowering max below an existing entry and deleting the last task', () => {
     const classId = repo.createClass('K', '2025/26');
     const [s] = repo.addStudents(classId, [{ lastName: 'A', firstName: 'B' }]);
-    const examId = repo.createExam(examInput(classId, { taskCount: 1 }));
+    const examId = repo.createExam(examInput(repo.createCourse(classId, 'Bio'), { taskCount: 1 }));
     const [t] = repo.tasks(examId);
     repo.updateTask(t!.id, { maxQp: 12 });
     repo.setScores(examId, [{ taskId: t!.id, studentId: s as number, qp: 10 }]);
@@ -220,29 +245,30 @@ describe('tasks', () => {
 
   it('supports 40 tasks', () => {
     const classId = repo.createClass('K', '2025/26');
-    const examId = repo.createExam(examInput(classId, { taskCount: 40 }));
+    const examId = repo.createExam(examInput(repo.createCourse(classId, 'Bio'), { taskCount: 40 }));
     expect(repo.tasks(examId)).toHaveLength(40);
   });
 
   it('duplicates structure only and copies structure from another exam', () => {
-    const { classId, examId, tasks } = setup();
+    const { courseId, examId, tasks } = setup();
     repo.updateTask(tasks[0] as number, { label: '1a', maxQp: 6 });
     const dup = repo.duplicateExam(examId);
     const d = repo.getExamData(dup);
     expect(d.tasks.map((t) => [t.label, t.maxQp])).toEqual([['1a', 6], ['2', 4], ['3', 4]]);
     expect(d.scores).toHaveLength(0);
     expect(d.students).toHaveLength(3);
-    const other = repo.createClass('Parallel', '2024/25');
+    expect(repo.getExamData(dup).exam.courseId).toBe(courseId);
+    const other = repo.createCourse(repo.createClass('Parallel', '2024/25'), 'Biologie');
     const copied = repo.createExam(examInput(other, { copyFromExamId: examId }));
     expect(repo.tasks(copied).map((t) => t.label)).toEqual(['1a', '2', '3']);
-    expect(() => repo.createExam(examInput(classId, { copyFromExamId: examId, stepQp: 4 }))).toThrow(/passt nicht/);
+    expect(() => repo.createExam(examInput(courseId, { copyFromExamId: examId, stepQp: 4 }))).toThrow(/passt nicht/);
   });
 });
 
 describe('cascading deletes (§6.1–6.3)', () => {
   it('deleting a student removes scores and participations', () => {
-    const { classId, students } = setup();
-    repo.createExam(examInput(classId));
+    const { courseId, students } = setup();
+    repo.createExam(examInput(courseId));
     const info = repo.studentDeletionInfo([students[0] as number]);
     expect(info.students[0]?.lastName).toBe('Zqxwvy');
     expect(info.scores).toBe(3);
@@ -264,9 +290,11 @@ describe('cascading deletes (§6.1–6.3)', () => {
     const { classId } = setup();
     const other = repo.createClass('Andere', '2024/25');
     repo.addStudents(other, [{ lastName: 'Bleibt', firstName: 'Da' }]);
-    expect(repo.classDeletionInfo(classId)).toEqual({ name: 'F-A11a', students: 3, exams: 1, scores: 9 });
+    repo.createCourse(classId, 'Chemie');
+    expect(repo.classDeletionInfo(classId)).toEqual({ name: 'F-A11a', students: 3, courses: 2, exams: 1, scores: 9 });
     repo.deleteClass(classId);
     expect([count('school_class'), count('student'), count('exam'), count('task'), count('score'), count('participation')]).toEqual([1, 1, 0, 0, 0, 0]);
+    expect([count('course'), count('course_student'), count('grade_category')]).toEqual([0, 0, 0]);
     expect(() => repo.deleteClass(classId)).toThrow(UserError);
   });
 });
@@ -279,6 +307,18 @@ describe('secure erasure', () => {
     repo.deleteStudents([students[0] as number]);
     repo.secureCleanup();
     expect(rawContains(SECRET)).toEqual([]);
+  });
+
+  it('a deleted subject leaves no trace of its results', () => {
+    const { courseId, examId } = setup();
+    repo.updateExam(examId, { notes: 'Notiz Qwyxzv' });
+    repo.secureCleanup(false);
+    expect(rawContains('Qwyxzv').length).toBeGreaterThan(0);
+    repo.deleteCourse(courseId);
+    repo.secureCleanup();
+    // (the students stay in the class, so only the exam note must be gone)
+    expect(rawContains('Qwyxzv').filter((h) => !h.endsWith(':lastname'))).toEqual([]);
+    expect(repo.listStudents(repo.classTree()[0]!.id)).toHaveLength(3);
   });
 
   it('a deleted class leaves no trace', () => {
@@ -297,6 +337,15 @@ describe('secure erasure', () => {
 });
 
 describe('settings', () => {
+  it('new subjects default to grades 1,0–6,0 with a final mark to one decimal', () => {
+    expect(repo.getSettings()).toMatchObject({ defaultGradingSystem: 'LIN6', defaultRounding: 'half_up', defaultRoundingDigits: 1 });
+    const courseId = repo.createCourse(repo.createClass('K', '2025/26'), 'Mathematik');
+    expect(repo.getCourse(courseId)).toMatchObject({ gradingSystem: 'LIN6', finalRounding: 'half_up', finalDigits: 1 });
+    repo.setSetting('defaultRoundingDigits', '0');
+    repo.setSetting('defaultGradingSystem', 'NP15');
+    expect(repo.getSettings()).toMatchObject({ defaultGradingSystem: 'NP15', defaultRoundingDigits: 0 });
+  });
+
   it('stores and validates settings', () => {
     expect(repo.getSettings()).toMatchObject({ enterDirection: 'down', touchMode: 'auto', retentionMonths: '12', lastExamId: null });
     repo.setSetting('enterDirection', 'right');

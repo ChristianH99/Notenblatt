@@ -2,11 +2,13 @@ import { Button } from '../components/ui';
 import { navigate, useStore } from '../store';
 import s from './shell.module.css';
 
-/** Start page: two numbered steps, no illustration, no slogan. */
+/** Start page: three numbered steps, no illustration, no slogan. */
 export function WelcomeView(): React.JSX.Element {
   const tree = useStore((st) => st.tree);
   const hasClass = tree.length > 0;
   const firstClass = tree[0];
+  const firstCourse = tree.flatMap((c) => c.courses)[0];
+  const hasCourse = firstCourse !== undefined;
   return (
     <div className={s.page}>
       <div className={s.pageInner}>
@@ -22,16 +24,30 @@ export function WelcomeView(): React.JSX.Element {
               Klasse anlegen
             </Button>
           </div>
-          <div className={s.step}>
+          <div className={`${s.step} ${hasCourse ? s.stepDone : ''}`}>
             <span className={s.stepNo}>2</span>
             <div>
-              <div className={s.stepTitle}>Prüfung anlegen</div>
-              <div className={s.muted}>Wählen Sie Art, Fach, Bewertung und die Anzahl der Aufgaben. Die Punkte tragen Sie danach in die Tabelle ein.</div>
+              <div className={s.stepTitle}>Fach anlegen</div>
+              <div className={s.muted}>Legen Sie in der Klasse jedes Fach an, das Sie dort unterrichten. Gewichtung und Noten werden je Fach getrennt berechnet.</div>
             </div>
             <Button
-              variant={hasClass ? 'primary' : 'secondary'}
+              variant={hasClass && !hasCourse ? 'primary' : 'secondary'}
               disabled={!hasClass}
-              onClick={() => useStore.setState({ dialog: { kind: 'newExam', classId: firstClass?.id ?? null } })}
+              onClick={() => firstClass && useStore.setState({ dialog: { kind: 'newCourse', classId: firstClass.id } })}
+            >
+              Fach anlegen
+            </Button>
+          </div>
+          <div className={s.step}>
+            <span className={s.stepNo}>3</span>
+            <div>
+              <div className={s.stepTitle}>Prüfung anlegen</div>
+              <div className={s.muted}>Wählen Sie Fach, Art, Datum und die Anzahl der Aufgaben. Die Punkte tragen Sie danach in die Tabelle ein.</div>
+            </div>
+            <Button
+              variant={hasCourse ? 'primary' : 'secondary'}
+              disabled={!hasCourse}
+              onClick={() => useStore.setState({ dialog: { kind: 'newExam', courseId: firstCourse?.id ?? null } })}
             >
               Prüfung anlegen
             </Button>
@@ -39,7 +55,7 @@ export function WelcomeView(): React.JSX.Element {
         </div>
         {hasClass && (
           <p className={s.muted}>
-            Oder wählen Sie links eine Klasse bzw. Prüfung.{' '}
+            Oder wählen Sie links eine Klasse, ein Fach oder eine Prüfung.{' '}
             <a
               href="#"
               onClick={(e) => {

@@ -114,8 +114,11 @@
 .navClass {
   font-weight: var(--fw-semibold);
 }
+.navCourse {
+  padding-left: 30px;
+}
 .navExam {
-  padding-left: 34px;
+  padding-left: 56px;
   font-size: var(--fs-13);
   color: var(--c-text);
 }

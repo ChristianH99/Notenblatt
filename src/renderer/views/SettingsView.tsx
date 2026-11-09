@@ -1,7 +1,7 @@
 import { useEditField } from '../hooks';
 import type { CategoryTemplate } from '@shared/types';
 import { CategoryEditor } from '../components/CategoryEditor';
-import { ROUNDING_OPTIONS } from './ClassGrading';
+import { ROUNDING_OPTIONS } from './CourseGrading';
 import { Button, Select, TextInput } from '../components/ui';
 import { call } from '../api';
 import { setSetting, useStore } from '../store';
@@ -81,7 +81,7 @@ export function SettingsView(): React.JSX.Element {
           <div className={`${s.sectionBody} ${s.formGrid}`}>
             <label htmlFor="set-teacher">Lehrkraft</label>
             <SettingText id="set-teacher" value={st.teacher} onCommit={(v) => void setSetting('teacher', v)} placeholder="Name für neue Prüfungen" />
-            <label htmlFor="set-school">Schule (optional, für Ausdrucke)</label>
+            <label htmlFor="set-school">Schule</label>
             <SettingText id="set-school" value={st.school} onCommit={(v) => void setSetting('school', v)} />
             <label htmlFor="set-enter">Eingabetaste bewegt nach</label>
             <Select id="set-enter" value={st.enterDirection} onChange={(e) => void setSetting('enterDirection', e.target.value)}>
@@ -138,11 +138,11 @@ export function SettingsView(): React.JSX.Element {
 
         <section className={s.section}>
           <div className={s.sectionHead}>
-            <h2 className={s.sectionTitle}>Vorlage für neue Klassen</h2>
+            <h2 className={s.sectionTitle}>Vorlage für neue Fächer</h2>
           </div>
           <div className={s.sectionBody} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <p className={s.muted}>
-              Gilt nur für Klassen, die Sie ab jetzt anlegen. Bestehende Klassen behalten ihre Einstellungen; diese ändern Sie in der jeweiligen Klasse unter
+              Gilt nur für Fächer, die Sie ab jetzt anlegen. Bestehende Fächer behalten ihre Einstellungen; diese ändern Sie im jeweiligen Fach unter
               „Gewichtung“.
             </p>
             <div className={s.formGrid}>

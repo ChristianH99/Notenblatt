@@ -4,7 +4,7 @@ import { computeMarkStats, finalMark, formatFinalMark, formatMark, isValidMark, 
 import { buildExamModel, resultText, statusText, sumText } from '@shared/examModel';
 import { examCsv } from '@shared/csv';
 import { buildOverview, formatAvg, formatWeight, overviewCsv, parseWeight } from '@shared/overview';
-import type { Exam, ExamData, GradeCategory, OverviewData, SchoolClass } from '@shared/types';
+import type { Course, Exam, ExamData, GradeCategory, OverviewData, SchoolClass } from '@shared/types';
 
 describe('marks', () => {
   it('parses NP and linear grades', () => {
@@ -179,21 +179,23 @@ describe('weights', () => {
   });
 });
 
-const cls: SchoolClass = { id: 1, name: '10a', schoolYear: '2025/26', gradingSystem: 'NP15', finalRounding: 'half_up', finalDigits: 0, createdAt: '', updatedAt: '' };
+const cls: SchoolClass = { id: 1, name: '10a', schoolYear: '2025/26', createdAt: '', updatedAt: '' };
+const course: Course = { id: 7, classId: 1, subject: 'Mathe', gradingSystem: 'NP15', finalRounding: 'half_up', finalDigits: 0, createdAt: '', updatedAt: '' };
 const cats: GradeCategory[] = [
-  { id: 2, classId: 1, name: 'Mündlich', weightC: 100, defaultMode: 'grade', position: 1 },
-  { id: 1, classId: 1, name: 'Schriftlich', weightC: 300, defaultMode: 'points', position: 0 },
+  { id: 2, courseId: 7, name: 'Mündlich', weightC: 100, defaultMode: 'grade', position: 1 },
+  { id: 1, courseId: 7, name: 'Schriftlich', weightC: 300, defaultMode: 'points', position: 0 },
 ];
 const students = [
   { id: 10, classId: 1, lastName: 'Berg', firstName: 'Bo' },
   { id: 11, classId: 1, lastName: 'Arnold', firstName: 'Ann' },
 ];
 const baseExam = (over: Partial<Exam>): Exam => ({
-  id: 1, classId: 1, kind: 'Ex', number: '', subject: 'Mathe', examDate: '2025-10-01', teacher: '', scheme: 'NP15', stepQp: 2, notes: '',
+  id: 1, courseId: 7, classId: 1, kind: 'Ex', number: '', subject: 'Mathe', examDate: '2025-10-01', teacher: '', scheme: 'NP15', stepQp: 2, notes: '',
   categoryId: 1, entryMode: 'points', ...over,
 });
 const es = (over: Partial<ExamData> & { exam: Exam }): ExamData => ({
   schoolClass: cls,
+  course,
   tasks: [],
   students: [
     { ...students[1]!, nr: 1, status: 'present' },
@@ -208,6 +210,7 @@ const es = (over: Partial<ExamData> & { exam: Exam }): ExamData => ({
 describe('overview builder', () => {
   const data: OverviewData = {
     schoolClass: cls,
+    course,
     categories: cats,
     students,
     exams: [
@@ -247,7 +250,7 @@ describe('overview builder', () => {
   });
 
   it('excludes exams in another grading system, and a student not in an exam', () => {
-    const lin = { ...data, schoolClass: { ...cls, gradingSystem: 'LIN6' as const } };
+    const lin = { ...data, course: { ...course, gradingSystem: 'LIN6' as const } };
     const o = buildOverview(lin);
     expect(o.columns.every((c) => !c.included)).toBe(true);
     expect(o.columns[0]?.reason).toMatch(/Notenpunkten/);

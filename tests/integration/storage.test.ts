@@ -65,6 +65,7 @@ describe('custom folder (shared drive)', () => {
 
     // every write is saved to the share
     const id = mgr.repo.createClass('8b', '2025/26');
+    mgr.repo.createCourse(id, 'Mathematik');
     mgr.persist();
     mgr.shutdown();
     expect(fs.existsSync(path.join(share, `${SNAP_NAME}.lock`))).toBe(false);
@@ -72,7 +73,7 @@ describe('custom folder (shared drive)', () => {
     const m2 = new DbManager(userData, opts);
     expect(m2.start()).toEqual({ state: 'ready' });
     expect(m2.repo.classTree().map((c) => c.id)).toContain(id);
-    expect(m2.repo.classTree()[0]?.categories.length).toBe(2);
+    expect(m2.repo.classTree().find((c) => c.id === id)?.courses[0]?.categories.length).toBe(2);
     m2.shutdown();
     mgr = m2;
   });

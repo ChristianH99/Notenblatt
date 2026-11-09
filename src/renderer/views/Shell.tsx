@@ -1,12 +1,13 @@
 import { useEffect, useMemo } from 'react';
-import { examTitle } from '@shared/labels';
+import { examShortTitle, examTitle } from '@shared/labels';
 import { isExpired } from '@shared/schoolYear';
 import { Button } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { useMediaQuery, useTouchMode } from '../hooks';
-import { navigate, openExam, undoRedo, useStore } from '../store';
+import { navigate, openExam, toggleView, undoRedo, useStore, type Route } from '../store';
 import { DialogHost } from '../dialogs/DialogHost';
 import { ClassView } from './ClassView';
+import { CourseView } from './CourseView';
 import { ExamView } from './ExamView';
 import { HelpView } from './HelpView';
 import { RetentionView } from './RetentionView';
@@ -31,8 +32,10 @@ function Nav({ compact, overlay, onPicked }: { compact: boolean; overlay?: boole
     for (const c of tree) m.set(c.schoolYear, [...(m.get(c.schoolYear) ?? []), c]);
     return [...m.entries()];
   }, [tree]);
-  const currentClass =
-    route.view === 'class' ? route.classId : route.view === 'exam' ? (tree.find((c) => c.exams.some((e) => e.id === route.examId))?.id ?? null) : null;
+  const courses = tree.flatMap((c) => c.courses);
+  const currentCourse =
+    route.view === 'course' ? route.courseId : route.view === 'exam' ? (courses.find((k) => k.exams.some((e) => e.id === route.examId))?.id ?? null) : null;
+  const newExam = (): void => useStore.setState({ dialog: { kind: 'newExam', courseId: currentCourse } });
 
   if (compact) {
     return (
@@ -42,8 +45,8 @@ function Nav({ compact, overlay, onPicked }: { compact: boolean; overlay?: boole
           variant="quiet"
           icon="add"
           tip="Neue Prüfung"
-          disabled={tree.length === 0}
-          onClick={() => useStore.setState({ dialog: { kind: 'newExam', classId: currentClass } })}
+          disabled={courses.length === 0}
+          onClick={newExam}
         />
       </nav>
     );
@@ -55,7 +58,7 @@ function Nav({ compact, overlay, onPicked }: { compact: boolean; overlay?: boole
         <Button icon="people" onClick={() => useStore.setState({ dialog: { kind: 'newClass' } })}>
           Neue Klasse
         </Button>
-        <Button icon="add" disabled={tree.length === 0} onClick={() => useStore.setState({ dialog: { kind: 'newExam', classId: currentClass } })}>
+        <Button icon="add" disabled={courses.length === 0} onClick={newExam}>
           Neue Prüfung
         </Button>
       </div>
@@ -77,19 +80,38 @@ function Nav({ compact, overlay, onPicked }: { compact: boolean; overlay?: boole
                   </span>
                   {c.name}
                 </button>
-                {c.exams.map((e) => {
-                  const active = route.view === 'exam' && route.examId === e.id;
+                {c.courses.map((k) => {
+                  const courseActive = route.view === 'course' && route.courseId === k.id;
                   return (
-                    <button
-                      key={e.id}
-                      type="button"
-                      className={`${s.navItem} ${s.navExam} ${active ? s.active : ''}`}
-                      onClick={() => void openExam(e.id)}
-                      aria-current={active ? 'page' : undefined}
-                      title={examTitle(e)}
-                    >
-                      <span className={s.navExamText}>{examTitle(e)}</span>
-                    </button>
+                    <div key={k.id}>
+                      <button
+                        type="button"
+                        className={`${s.navItem} ${s.navCourse} ${courseActive ? s.active : ''}`}
+                        onClick={() => navigate({ view: 'course', courseId: k.id })}
+                        aria-current={courseActive ? 'page' : undefined}
+                        title={`${k.subject} · ${c.name}`}
+                      >
+                        <span className={s.navIconBox}>
+                          <Icon name="documentText" />
+                        </span>
+                        <span className={s.navExamText}>{k.subject}</span>
+                      </button>
+                      {k.exams.map((e) => {
+                        const active = route.view === 'exam' && route.examId === e.id;
+                        return (
+                          <button
+                            key={e.id}
+                            type="button"
+                            className={`${s.navItem} ${s.navExam} ${active ? s.active : ''}`}
+                            onClick={() => void openExam(e.id)}
+                            aria-current={active ? 'page' : undefined}
+                            title={`${c.name} · ${examTitle(e)}`}
+                          >
+                            <span className={s.navExamText}>{examShortTitle(e)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   );
                 })}
               </div>
@@ -190,19 +212,30 @@ export function Shell(): React.JSX.Element {
     return () => window.removeEventListener('keydown', onKey);
   }, [overlay]);
 
-  const crumb =
-    route.view === 'exam' && exam
-      ? `${exam.schoolClass.name} · ${examTitle(exam.exam)}`
-      : route.view === 'class'
-        ? (tree.find((c) => c.id === route.classId)?.name ?? '')
-        : '';
-
-  const crumbClass = route.view === 'exam' && exam ? exam.exam.classId : null;
+  // Breadcrumb: Klasse › Fach › Prüfung; every part but the current one links to its page.
+  const crumbs: { label: string; to: Route | null; tip: string }[] = [];
+  if (route.view === 'exam' && exam) {
+    crumbs.push({ label: exam.schoolClass.name, to: { view: 'class', classId: exam.schoolClass.id }, tip: 'Klasse öffnen' });
+    crumbs.push({ label: exam.course.subject, to: { view: 'course', courseId: exam.course.id }, tip: 'Fach öffnen' });
+    crumbs.push({ label: examShortTitle(exam.exam), to: null, tip: '' });
+  } else if (route.view === 'course') {
+    const cls = tree.find((c) => c.courses.some((k) => k.id === route.courseId));
+    const course = cls?.courses.find((k) => k.id === route.courseId);
+    if (cls && course) {
+      crumbs.push({ label: cls.name, to: { view: 'class', classId: cls.id }, tip: 'Klasse öffnen' });
+      crumbs.push({ label: course.subject, to: null, tip: '' });
+    }
+  } else if (route.view === 'class') {
+    crumbs.push({ label: tree.find((c) => c.id === route.classId)?.name ?? '', to: null, tip: '' });
+  }
 
   let content: React.JSX.Element;
   switch (route.view) {
     case 'class':
       content = <ClassView key={route.classId} classId={route.classId} />;
+      break;
+    case 'course':
+      content = <CourseView key={route.courseId} courseId={route.courseId} initialTab={route.tab} />;
       break;
     case 'exam':
       content = exam ? <ExamView key={exam.exam.id} /> : <div />;
@@ -233,20 +266,37 @@ export function Shell(): React.JSX.Element {
           <Logo />
           Notenblatt
         </div>
-        <div className={s.crumb}>
-          {crumbClass !== null ? (
-            <button type="button" className={s.crumbLink} onClick={() => navigate({ view: 'class', classId: crumbClass })} title="Klasse öffnen">
-              {crumb}
-            </button>
-          ) : (
-            crumb
-          )}
-        </div>
+        <nav className={s.crumb} aria-label="Pfad" data-testid="crumb">
+          {crumbs.map((c, i) => (
+            <span key={i}>
+              {i > 0 && ' › '}
+              {c.to ? (
+                <button type="button" className={s.crumbLink} onClick={() => navigate(c.to as Route)} title={c.tip}>
+                  {c.label}
+                </button>
+              ) : (
+                c.label
+              )}
+            </span>
+          ))}
+        </nav>
         <div className={s.spacer} />
-        <Button variant="quiet" icon="settings" pressed={route.view === 'settings'} onClick={() => navigate({ view: 'settings' })}>
+        <Button
+          variant="quiet"
+          icon="settings"
+          pressed={route.view === 'settings'}
+          tip={route.view === 'settings' ? 'Einstellungen schließen und zurück zur vorherigen Ansicht' : undefined}
+          onClick={() => void toggleView('settings')}
+        >
           Einstellungen
         </Button>
-        <Button variant="quiet" icon="question" pressed={route.view === 'help'} onClick={() => navigate({ view: 'help' })}>
+        <Button
+          variant="quiet"
+          icon="question"
+          pressed={route.view === 'help'}
+          tip={route.view === 'help' ? 'Hilfe schließen und zurück zur vorherigen Ansicht' : undefined}
+          onClick={() => void toggleView('help')}
+        >
           Hilfe
         </Button>
       </header>

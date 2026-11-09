@@ -1,4 +1,4 @@
-/** "Notenübersicht": all students × all exams of a class with category and weighted overall averages. */
+/** "Notenübersicht": all members × all exams of a course with category and weighted overall averages. */
 import { useEffect, useMemo, useState } from 'react';
 import { markIsLow } from '@shared/grading/marks';
 import { buildOverview, formatAvg, formatWeight, type Overview } from '@shared/overview';
@@ -11,13 +11,13 @@ import o from './overview.module.css';
 
 const cx = (...c: (string | false | null | undefined)[]): string => c.filter(Boolean).join(' ');
 
-export function ClassOverview({ classId }: { classId: number }): React.JSX.Element {
+export function CourseOverview({ courseId }: { courseId: number }): React.JSX.Element {
   const tree = useStore((s) => s.tree);
   const version = useStore((s) => s.version);
   const [data, setData] = useState<OverviewData | null>(null);
   useEffect(() => {
-    void call('classes.overview', { id: classId }).then(setData);
-  }, [classId, tree, version]);
+    void call('courses.overview', { id: courseId }).then(setData);
+  }, [courseId, tree, version]);
   const ov: Overview | null = useMemo(() => (data ? buildOverview(data) : null), [data]);
   if (!data || !ov) return <div />;
 
@@ -35,7 +35,7 @@ export function ClassOverview({ classId }: { classId: number }): React.JSX.Eleme
       <div className={o.bar}>
         <span style={{ flex: 1 }} />
         {oral && (
-          <Button icon="add" onClick={() => useStore.setState({ dialog: { kind: 'newExam', classId, categoryId: oral.id } })}>
+          <Button icon="add" onClick={() => useStore.setState({ dialog: { kind: 'newExam', courseId, categoryId: oral.id } })}>
             Note „{oral.name}“ eintragen
           </Button>
         )}
@@ -43,7 +43,7 @@ export function ClassOverview({ classId }: { classId: number }): React.JSX.Eleme
           icon="arrowDownload"
           onClick={() =>
             void (async () => {
-              const f = await save(call('output.overviewCsv', { classId }));
+              const f = await save(call('output.overviewCsv', { courseId }));
               if (f) flash('CSV-Datei gespeichert', 'info');
             })()
           }

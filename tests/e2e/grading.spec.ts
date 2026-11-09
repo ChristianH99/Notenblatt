@@ -1,35 +1,45 @@
 /**
- * Weighted grading across written (points) and oral (mark-only) exams, per-class weights,
- * template for new classes, database encryption and a custom storage folder.
+ * Weighted grading across written (points) and oral (mark-only) exams, per-subject weights,
+ * subjects of one class kept apart, template for new subjects, database encryption and a
+ * custom storage folder.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { expectFlash, launch, navClick, netLog, SCREENSHOTS, tempDir } from './helpers';
+import { expectFlash, invoke, launch, navClick, netLog, SCREENSHOTS, tempDir } from './helpers';
 
 const SHOT = (name: string): string => path.join(SCREENSHOTS, name);
 
-async function openClassTab(page: Page, cls: string, tab: string): Promise<void> {
-  await navClick(page, cls);
+async function openCourseTab(page: Page, subject: string, tab: string): Promise<void> {
+  await navClick(page, subject);
   await page.getByRole('tab', { name: tab }).click();
 }
 
-async function newExam(page: Page, opts: { subject: string; category: string; kind?: string; count?: string }): Promise<void> {
+async function newCourse(page: Page, subject: string): Promise<void> {
+  await page.getByRole('button', { name: 'Neues Fach' }).click();
+  const dlg = page.getByRole('dialog', { name: 'Neues Fach' });
+  await dlg.locator('#course-subject').fill(subject);
+  await dlg.getByRole('button', { name: 'Fach anlegen' }).click();
+  await expect(dlg).toBeHidden();
+}
+
+async function newExam(page: Page, opts: { category: string; kind?: string; count?: string }): Promise<void> {
   const dlg = page.getByRole('dialog', { name: 'Neue Prüfung' });
   await expect(dlg).toBeVisible();
   const label = await dlg.locator('#ex-cat option', { hasText: opts.category }).first().textContent();
   await dlg.locator('#ex-cat').selectOption({ label: label ?? '' });
   if (opts.kind) await dlg.locator('#ex-kind').fill(opts.kind);
-  await dlg.locator('#ex-subject').fill(opts.subject);
   if (opts.count) await dlg.locator('#ex-count').fill(opts.count);
   await dlg.getByRole('button', { name: 'Prüfung anlegen' }).click();
   await expect(dlg).toBeHidden();
 }
 
-test('weighted overall average, per-class weights, encryption and custom folder', async () => {
+test('weighted overall average, per-subject weights, encryption and custom folder', async () => {
   const dataDir = tempDir();
   const share = tempDir('nb-share-');
   let { app, page } = await launch(dataDir, { width: 1440, height: 900 });
+  // Written in Notenpunkte; the app's default for new subjects is Noten 1–6.
+  await invoke(page, 'settings.set', { key: 'defaultGradingSystem', value: 'NP15' });
 
   // class with three students
   await page.getByRole('button', { name: 'Klasse anlegen' }).click();
@@ -38,19 +48,21 @@ test('weighted overall average, per-class weights, encryption and custom folder'
   await page.getByRole('button', { name: 'Namen einfügen…' }).click();
   await page.locator('#paste-text').fill('Conrad, Clara\nAlbers, Anna\nBrandt, Ben');
   await page.getByRole('button', { name: '3 Namen übernehmen' }).click();
+  await newCourse(page, 'Physik');
+  await expect(page.getByRole('heading', { name: 'Physik · Klasse 9c' })).toBeVisible();
 
-  // weighting of the class comes from the template: Schriftlich ×3, Mündlich ×1
+  // weighting of the subject comes from the template: Schriftlich ×3, Mündlich ×1
   await page.getByRole('tab', { name: 'Gewichtung' }).click();
-  const cats = page.getByRole('table', { name: 'Kategorien der Klasse' });
+  const cats = page.getByRole('table', { name: 'Kategorien des Fachs' });
   await expect(cats.locator('tbody tr')).toHaveCount(2);
   await expect(cats.getByLabel('Gewicht von Schriftlich')).toHaveValue('3');
   await expect(cats.getByLabel('Gewicht von Mündlich')).toHaveValue('1');
   await expect(cats.locator('tr[data-category="Schriftlich"]')).toContainText('75 %');
 
   // written exam with points: 1 task, max 15
-  await page.getByRole('tab', { name: 'Schüler/innen und Prüfungen' }).click();
+  await page.getByRole('tab', { name: 'Prüfungen und Schüler/innen' }).click();
   await page.getByRole('button', { name: 'Neue Prüfung' }).last().click();
-  await newExam(page, { subject: 'Physik', category: 'Schriftlich', count: '1' });
+  await newExam(page, { category: 'Schriftlich', count: '1' });
   await page.locator('#cell--1-0').click();
   await page.keyboard.type('15');
   await page.keyboard.press('Enter');
@@ -83,13 +95,13 @@ test('weighted overall average, per-class weights, encryption and custom folder'
   await expect(page.locator('#res-2')).toHaveText('11');
   await page.screenshot({ path: SHOT('direct-sum-1440x900.png') });
 
-  // oral marks: from the overview, "Note „Mündlich“ eintragen" preselects category and mode
-  await openClassTab(page, '9c', 'Notenübersicht');
+  // oral marks: from the overview, "Note „Mündlich“ eintragen" preselects subject, category and mode
+  await openCourseTab(page, 'Physik', 'Notenübersicht');
   await page.getByRole('button', { name: 'Note „Mündlich“ eintragen' }).click();
   const dlg = page.getByRole('dialog', { name: 'Neue Prüfung' });
+  await expect(dlg.locator('#ex-course option:checked')).toHaveText('9c · Physik');
   await expect(dlg.getByLabel('Nur Note (z. B. mündlich)')).toBeChecked();
   await expect(dlg.locator('#ex-count')).toHaveCount(0);
-  await dlg.locator('#ex-subject').fill('Physik');
   await dlg.getByRole('button', { name: 'Prüfung anlegen' }).click();
   await expect(page.getByRole('grid', { name: 'Notentabelle' })).toBeVisible();
   await page.locator('#mark-0').click();
@@ -109,16 +121,34 @@ test('weighted overall average, per-class weights, encryption and custom folder'
   await page.keyboard.press('Control+y');
   await expect(page.locator('#mark-1')).toHaveText('12');
 
-  await openClassTab(page, '9c', 'Notenübersicht');
+  await openCourseTab(page, 'Physik', 'Notenübersicht');
   await page.getByRole('button', { name: 'Note „Mündlich“ eintragen' }).click();
-  await page.getByRole('dialog', { name: 'Neue Prüfung' }).locator('#ex-subject').fill('Physik');
   await page.getByRole('dialog', { name: 'Neue Prüfung' }).getByRole('button', { name: 'Prüfung anlegen' }).click();
   await page.locator('#mark-0').click();
   await page.keyboard.type('13');
   await page.keyboard.press('Enter');
 
+  // a second subject of the same class: its marks never mix into Physik; Brandt does not take it
+  await navClick(page, '9c');
+  await newCourse(page, 'Chemie');
+  await page.getByLabel('Brandt, Ben nimmt am Fach teil').uncheck();
+  await expect(page.getByLabel('Brandt, Ben nimmt am Fach teil')).not.toBeChecked();
+  await expect(page.getByText('2 von 3 Schüler/innen')).toBeVisible();
+  await page.getByRole('button', { name: 'Neue Prüfung' }).last().click();
+  await expect(page.locator('#ex-course option:checked')).toHaveText('9c · Chemie');
+  await newExam(page, { category: 'Mündlich' });
+  await expect(page.getByRole('grid', { name: 'Notentabelle' }).locator('tbody tr')).toHaveCount(2);
+  await page.locator('#mark-0').click();
+  await page.keyboard.type('1');
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('crumb')).toHaveText(/^9c › Chemie › Mündliche Note/);
+  await openCourseTab(page, 'Chemie', 'Notenübersicht');
+  await expect(page.getByRole('table', { name: 'Notenübersicht' }).locator('tbody tr')).toHaveCount(2);
+  await expect(page.getByTestId('overall-Albers')).toHaveText('1,00');
+  await expect(page.getByTestId('overall-Brandt')).toHaveCount(0);
+
   // overview (every exam weighted with its category): Albers (3·15 + 9 + 13)/5 = 13,40 · Brandt (3·3 + 12)/4 = 5,25 · Conrad 11
-  await openClassTab(page, '9c', 'Notenübersicht');
+  await openCourseTab(page, 'Physik', 'Notenübersicht');
   const ov = page.getByRole('table', { name: 'Notenübersicht' });
   await expect(ov.locator('tbody tr')).toHaveCount(3);
   await expect(page.getByTestId('overall-Albers')).toHaveText('13,40');
@@ -131,11 +161,11 @@ test('weighted overall average, per-class weights, encryption and custom folder'
   await page.screenshot({ path: SHOT('overview-1440x900.png') });
   await expect(ov.locator('tr[data-student="Albers"] td')).toContainText(['1', 'Albers', 'Anna', '15', '9', '13', '15,00', '11,00', '13,40', '13']);
 
-  // change the class weighting: Mündlich ×3 → Albers (45 + 27 + 39)/9 = 12,33, Brandt (9 + 36)/6 = 7,50 → Endnote 8
+  // change the weighting of the subject: Mündlich ×3 → Albers (45 + 27 + 39)/9 = 12,33, Brandt (9 + 36)/6 = 7,50 → Endnote 8
   await page.getByRole('tab', { name: 'Gewichtung' }).click();
   await page.getByLabel('Gewicht von Mündlich').fill('3');
   await page.getByLabel('Gewicht von Mündlich').press('Enter');
-  await expect(page.getByRole('table', { name: 'Kategorien der Klasse' }).locator('tr[data-category="Mündlich"]')).toContainText('50 %');
+  await expect(page.getByRole('table', { name: 'Kategorien des Fachs' }).locator('tr[data-category="Mündlich"]')).toContainText('50 %');
   await page.screenshot({ path: SHOT('weighting-1440x900.png') });
   await page.getByRole('tab', { name: 'Notenübersicht' }).click();
   await expect(page.getByTestId('overall-Albers')).toHaveText('12,33');
@@ -154,19 +184,25 @@ test('weighted overall average, per-class weights, encryption and custom folder'
   await expectFlash(page, /Das Notensystem kann nicht geändert werden: In „Mündliche Note · Physik · .*“ sind bereits Noten eingetragen/);
   await expect(page.locator('#cls-system')).toHaveValue('NP15');
 
-  // template change in the settings affects only NEW classes
+  // the other subject of the class keeps its own weighting
+  await openCourseTab(page, 'Chemie', 'Gewichtung');
+  await expect(page.getByLabel('Gewicht von Mündlich')).toHaveValue('1');
+  await expect(page.locator('#cls-rounding')).toHaveValue('half_up');
+
+  // template change in the settings affects only NEW subjects
   await page.getByRole('button', { name: 'Einstellungen' }).click();
   const tpl = page.getByRole('table', { name: 'Kategorien der Vorlage' });
   await tpl.getByLabel('Gewicht von Mündlich').fill('2');
   await tpl.getByLabel('Gewicht von Mündlich').press('Enter');
   await expect(page.getByTestId('status')).toHaveText('Gespeichert');
-  await openClassTab(page, '9c', 'Gewichtung');
+  await openCourseTab(page, 'Physik', 'Gewichtung');
   await expect(page.getByLabel('Gewicht von Mündlich')).toHaveValue('3');
   const nav = page.getByRole('navigation', { name: 'Klassen und Prüfungen' });
   if (!(await nav.isVisible())) await page.keyboard.press('Control+b');
   await nav.getByRole('button', { name: 'Neue Klasse' }).click();
   await page.getByLabel('Klasse', { exact: true }).fill('10a');
   await page.getByRole('button', { name: 'Klasse anlegen' }).last().click();
+  await newCourse(page, 'Englisch');
   await page.getByRole('tab', { name: 'Gewichtung' }).click();
   await expect(page.getByLabel('Gewicht von Mündlich')).toHaveValue('2');
   await expect(page.getByLabel('Gewicht von Schriftlich')).toHaveValue('3');
@@ -216,7 +252,7 @@ test('weighted overall average, per-class weights, encryption and custom folder'
   await expect(page.getByText('Das Passwort ist falsch oder die Datei ist beschädigt.')).toBeVisible();
   await page.locator('#gate-pw').fill('lehrer-2026');
   await page.getByRole('button', { name: 'Entsperren' }).click();
-  await openClassTab(page, '9c', 'Notenübersicht');
+  await openCourseTab(page, 'Physik', 'Notenübersicht');
   await expect(page.getByTestId('overall-Albers')).toHaveText('12,33'); // Mündlich ×3 since the weighting change
   expect(await netLog(app)).toEqual([]);
   await app.close();

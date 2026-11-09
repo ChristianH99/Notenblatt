@@ -14,7 +14,7 @@ import {
   GOLDEN_TASK_AVG,
   GOLDEN_TASK_SHARE,
 } from '../fixtures/golden';
-import { cell, expectFlash, launch, mockSaveDialog, navClick, netLog, setClipboard, tempDir, type App } from './helpers';
+import { cell, expectFlash, invoke, launch, mockSaveDialog, navClick, netLog, setClipboard, tempDir, type App } from './helpers';
 
 const ABSENT = [10, 17, 18];
 const N_TASKS = GOLDEN_LABELS.length; // 17
@@ -70,8 +70,10 @@ test('complete workflow on an empty database', async () => {
   let a: App = await launch(dataDir);
   let { app, page } = a;
 
-  // 1 — empty database: two numbered steps
+  // 1 — empty database: three numbered steps
   await expect(page.getByRole('heading', { name: 'Erste Schritte' })).toBeVisible();
+  // Written in Notenpunkte; the app's default for new subjects is Noten 1–6.
+  await invoke(page, 'settings.set', { key: 'defaultGradingSystem', value: 'NP15' });
 
   // 2 — create class, paste 20 names (comma and tab variants)
   await page.getByRole('button', { name: 'Klasse anlegen' }).click();
@@ -89,14 +91,29 @@ test('complete workflow on an empty database', async () => {
   await expect(list.locator('tbody tr').nth(9).getByLabel(/^Name von/)).toHaveValue('Jäger');
   await expect(list.locator('tbody tr').nth(14).getByLabel(/^Name von/)).toHaveValue('Öztürk');
 
-  // 3 — new exam with 8 tasks; labels and max points; add tasks 7–15 to reach M = 55
+  // 3 — subject Biologie in the class, then a new exam with 8 tasks; labels and max points; add tasks 7–15 to reach M = 55
+  await page.getByRole('button', { name: 'Neues Fach' }).click();
+  await page.getByRole('dialog', { name: 'Neues Fach' }).locator('#course-subject').fill('Biologie');
+  await page.getByRole('button', { name: 'Fach anlegen' }).click();
+  await expect(page.getByRole('heading', { name: 'Biologie · Klasse F-A11a' })).toBeVisible();
+  await expect(page.getByRole('table', { name: 'Schüler/innen im Fach' }).locator('tbody input:checked')).toHaveCount(20);
   await page.getByRole('button', { name: 'Neue Prüfung' }).last().click();
+  await expect(page.locator('#ex-course')).toHaveValue(/\d+/);
+  await expect(page.locator('#ex-course option:checked')).toHaveText('F-A11a · Biologie');
   await page.locator('#ex-kind').fill('Kurzarbeit');
   await page.locator('#ex-nr').fill('2.');
-  await page.locator('#ex-subject').fill('Biologie');
   await page.locator('#ex-date').fill('19.03.2025');
   await page.locator('#ex-count').fill('8');
   await page.getByRole('button', { name: 'Prüfung anlegen' }).click();
+  await expect(cell(page, -2, 7)).toHaveText('8');
+  await expect(page.getByTestId('crumb')).toHaveText('F-A11a › Biologie › Kurzarbeit 2 · 19.03.2025');
+  // settings and help: a second click on the pressed header button returns to the exam
+  await page.getByRole('button', { name: 'Einstellungen' }).click();
+  await expect(page.getByRole('heading', { name: 'Einstellungen', level: 1 })).toBeVisible();
+  await page.getByRole('button', { name: 'Hilfe' }).click();
+  await expect(page.getByRole('button', { name: 'Hilfe' })).toHaveAttribute('title', /zurück zur vorherigen Ansicht/);
+  await page.getByRole('button', { name: 'Hilfe' }).click();
+  await expect(page.getByTestId('crumb')).toHaveText('F-A11a › Biologie › Kurzarbeit 2 · 19.03.2025');
   await expect(cell(page, -2, 7)).toHaveText('8');
   for (let c = 8; c < N_TASKS; c++) {
     await page.getByRole('button', { name: 'Aufgabe hinzufügen' }).click();
@@ -141,13 +158,13 @@ test('complete workflow on an empty database', async () => {
   // partial-row marker
   await expect(page.locator('#sum-0')).toHaveAttribute('title', 'Unvollständig: 9 von 17 Aufgaben ohne Eintrag');
 
-  // 6 — linear scheme (the grading system is set per class, in the "Gewichtung" tab)
+  // 6 — linear scheme (the grading system is set per subject, in the "Gewichtung" tab)
   const setSystem = async (v: 'LIN6' | 'NP15'): Promise<void> => {
-    await navClick(page, 'F-A11a');
+    await page.getByTestId('crumb').getByRole('button', { name: 'Biologie' }).click();
     await page.getByRole('tab', { name: 'Gewichtung' }).click();
     await page.locator('#cls-system').selectOption(v);
     await expect(page.locator('#cls-system')).toHaveValue(v);
-    await navClick(page, 'Kurzarbeit 2 · Biologie · 19.03.2025');
+    await navClick(page, 'Kurzarbeit 2 · 19.03.2025');
   };
   await setSystem('LIN6');
   for (const [nr, exp] of Object.entries(GOLDEN_RESULTS)) {
@@ -275,9 +292,9 @@ test('complete workflow on an empty database', async () => {
   await page.getByRole('button', { name: 'Weitere Aktionen' }).click();
   await page.getByRole('menuitem', { name: 'Prüfung duplizieren' }).click();
   await expect(page.locator('#sum-0')).toHaveText('');
-  await navClick(page, 'F-A11a');
+  await navClick(page, 'Biologie');
   await expect(page.getByRole('table', { name: 'Notenübersicht' })).toBeVisible();
-  await page.getByRole('tab', { name: 'Schüler/innen und Prüfungen' }).click();
+  await navClick(page, 'F-A11a');
   await page.getByLabel('Albrecht, Anna auswählen').check();
   await page.getByRole('button', { name: 'Schüler/in löschen…' }).click();
   const dlg = page.getByRole('dialog', { name: 'Schüler/in löschen' });
@@ -286,15 +303,15 @@ test('complete workflow on an empty database', async () => {
   await dlg.getByRole('button', { name: 'Endgültig löschen' }).click();
   await expect(page.getByRole('table', { name: 'Schülerliste' }).locator('tbody tr')).toHaveCount(20);
   await page.keyboard.press('Control+b');
-  const navExams = page.getByRole('navigation', { name: 'Klassen und Prüfungen' }).locator('button', { hasText: 'Kurzarbeit 2 · Biologie' });
+  const navExams = page.getByRole('navigation', { name: 'Klassen und Prüfungen' }).locator('button', { hasText: /^Kurzarbeit 2 · / });
   await expect(navExams).toHaveCount(2);
   await page.keyboard.press('Escape');
   for (let i = 0; i < 2; i++) {
-    await navClick(page, /^Kurzarbeit 2 · Biologie/, i);
+    await navClick(page, /^Kurzarbeit 2 · /, i);
     await expect(page.getByRole('grid').locator('tbody tr')).toHaveCount(19);
     await expect(page.getByRole('grid')).not.toContainText('Albrecht');
   }
-  await navClick(page, 'Kurzarbeit 2 · Biologie · 19.03.2025');
+  await navClick(page, 'Kurzarbeit 2 · 19.03.2025');
   await expect(page.getByTestId('fig-written')).toHaveText('16 / 19');
   await expect(page.locator('#sum-0')).toHaveText('17');
 
@@ -303,6 +320,7 @@ test('complete workflow on an empty database', async () => {
   await page.getByRole('button', { name: 'Klasse löschen…' }).click();
   const del = page.getByRole('dialog', { name: 'Klasse löschen' });
   await expect(del).toContainText('19 Schüler/innen');
+  await expect(del).toContainText('1 Fach');
   await expect(del).toContainText('2 Prüfungen');
   await expect(del.getByRole('button', { name: 'Endgültig löschen' })).toBeDisabled();
   await del.getByLabel(/Klassennamen/).fill('F-A11a');

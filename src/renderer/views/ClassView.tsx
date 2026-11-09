@@ -1,14 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { examTitle } from '@shared/labels';
+import { useCallback, useEffect, useState } from 'react';
 import type { Student } from '@shared/types';
 import { call } from '../api';
 import { Button, uiStyles as u } from '../components/ui';
 import { ClassDialog } from '../dialogs/ClassDialog';
 import { PasteNamesDialog } from '../dialogs/PasteNamesDialog';
 import { useEditField } from '../hooks';
-import { ClassGrading } from './ClassGrading';
-import { ClassOverview } from './ClassOverview';
-import { bumpVersion, flash, openExam, refreshTree, save, saveOk, useStore } from '../store';
+import { bumpVersion, flash, navigate, refreshTree, save, saveOk, useStore } from '../store';
 import s from './shell.module.css';
 import c from './classView.module.css';
 
@@ -26,9 +23,6 @@ export function ClassView({ classId }: { classId: number }): React.JSX.Element {
   const [newLast, setNewLast] = useState('');
   const [newFirst, setNewFirst] = useState('');
   const [dialog, setDialog] = useState<'rename' | 'copy' | 'paste' | null>(null);
-  const [tab, setTab] = useState<'overview' | 'students' | 'grading'>(() =>
-    (useStore.getState().tree.find((x) => x.id === classId)?.exams.length ?? 0) > 0 ? 'overview' : 'students',
-  );
 
   const load = useCallback(async () => {
     const list = await call('students.list', { classId });
@@ -63,8 +57,6 @@ export function ClassView({ classId }: { classId: number }): React.JSX.Element {
     return true;
   };
 
-  const exams = useMemo(() => cls?.exams ?? [], [cls]);
-
   if (!cls) return <div className={s.page} />;
 
   return (
@@ -74,7 +66,7 @@ export function ClassView({ classId }: { classId: number }): React.JSX.Element {
           <div>
             <h1 className={s.viewTitle}>Klasse {cls.name}</h1>
             <div className={s.muted}>
-              Schuljahr {cls.schoolYear} · {students.length} Schüler/innen
+              Schuljahr {cls.schoolYear} · {students.length} Schüler/innen · {cls.courses.length === 1 ? '1 Fach' : `${cls.courses.length} Fächer`}
             </div>
           </div>
           <div className={s.spacer} />
@@ -89,23 +81,6 @@ export function ClassView({ classId }: { classId: number }): React.JSX.Element {
           </Button>
         </div>
 
-        <div className={c.tabs} role="tablist" aria-label="Ansicht">
-          {(
-            [
-              ['overview', 'Notenübersicht'],
-              ['students', 'Schüler/innen und Prüfungen'],
-              ['grading', 'Gewichtung'],
-            ] as const
-          ).map(([k, label]) => (
-            <button key={k} type="button" role="tab" aria-selected={tab === k} className={`${c.tab} ${tab === k ? c.tabActive : ''}`} onClick={() => setTab(k)}>
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {tab === 'overview' && <ClassOverview classId={classId} />}
-        {tab === 'grading' && <ClassGrading classId={classId} />}
-        {tab === 'students' && (
         <div className={c.columns}>
           <section className={`${s.section} ${c.students}`}>
             <div className={s.sectionHead}>
@@ -206,22 +181,26 @@ export function ClassView({ classId }: { classId: number }): React.JSX.Element {
 
           <section className={`${s.section} ${c.exams}`}>
             <div className={s.sectionHead}>
-              <h2 className={s.sectionTitle}>Prüfungen</h2>
-              <Button icon="add" onClick={() => useStore.setState({ dialog: { kind: 'newExam', classId } })}>
-                Neue Prüfung
+              <h2 className={s.sectionTitle}>Fächer</h2>
+              <Button icon="add" onClick={() => useStore.setState({ dialog: { kind: 'newCourse', classId } })}>
+                Neues Fach
               </Button>
             </div>
-            {exams.length === 0 ? (
+            {cls.courses.length === 0 ? (
               <div className={c.empty}>
-                <span className={s.muted}>Noch keine Prüfungen.</span>
+                <span className={s.muted}>
+                  Noch keine Fächer. Legen Sie jedes Fach an, das Sie in dieser Klasse unterrichten. Prüfungen, Gewichtung und Noten gehören immer zu einem Fach.
+                </span>
               </div>
             ) : (
-              <ul className={c.examList}>
-                {exams.map((e) => (
-                  <li key={e.id}>
-                    <button type="button" className={c.examItem} onClick={() => void openExam(e.id)}>
-                      {examTitle(e)}
-                      <span className={c.examCat}>{cls.categories.find((k) => k.id === e.categoryId)?.name ?? ''}</span>
+              <ul className={c.examList} aria-label="Fächer der Klasse">
+                {cls.courses.map((k) => (
+                  <li key={k.id}>
+                    <button type="button" className={c.examItem} onClick={() => navigate({ view: 'course', courseId: k.id })}>
+                      {k.subject}
+                      <span className={c.examCat}>
+                        {k.memberIds.length} Schüler/innen · {k.exams.length === 1 ? '1 Prüfung' : `${k.exams.length} Prüfungen`}
+                      </span>
                     </button>
                   </li>
                 ))}
@@ -229,7 +208,6 @@ export function ClassView({ classId }: { classId: number }): React.JSX.Element {
             )}
           </section>
         </div>
-        )}
       </div>
 
       {dialog === 'rename' && <ClassDialog mode="rename" source={cls} onClose={() => setDialog(null)} />}

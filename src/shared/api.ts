@@ -13,6 +13,7 @@ import type {
   BackupCounts,
   ClassDeletionInfo,
   ClassTreeItem,
+  CourseDeletionInfo,
   ExamData,
   ExamPatch,
   NameInput,
@@ -51,6 +52,7 @@ export interface ExamPick {
   id: number;
   title: string;
   className: string;
+  subject: string;
   schoolYear: string;
   stepQp: StepQp;
   taskCount: number;
@@ -68,15 +70,21 @@ export interface ApiMethods {
   'classes.copy': (a: { id: number; name: string; schoolYear: string }) => number;
   'classes.deletionInfo': (a: { id: number }) => ClassDeletionInfo;
   'classes.delete': (a: { id: number }) => void;
-  'classes.overview': (a: { id: number }) => OverviewData;
-  'classes.updateGrading': (a: { id: number; gradingSystem?: Scheme; finalRounding?: RoundingRule; finalDigits?: RoundingDigits }) => void;
-  'categories.add': (a: { classId: number; name: string; weightC: number; defaultMode: EntryMode }) => number;
+  'courses.create': (a: { classId: number; subject: string }) => number;
+  'courses.rename': (a: { id: number; subject: string }) => void;
+  'courses.deletionInfo': (a: { id: number }) => CourseDeletionInfo;
+  'courses.delete': (a: { id: number }) => void;
+  'courses.setMember': (a: { id: number; studentId: number; member: boolean }) => void;
+  'courses.subjects': (a: void) => string[];
+  'courses.overview': (a: { id: number }) => OverviewData;
+  'courses.updateGrading': (a: { id: number; gradingSystem?: Scheme; finalRounding?: RoundingRule; finalDigits?: RoundingDigits }) => void;
+  'categories.add': (a: { courseId: number; name: string; weightC: number; defaultMode: EntryMode }) => number;
   'categories.update': (a: { id: number; name?: string; weightC?: number; defaultMode?: EntryMode }) => void;
   'categories.move': (a: { id: number; position: number }) => void;
   'categories.delete': (a: { id: number }) => void;
   'marks.set': (a: { examId: number; changes: MarkChange[] }) => ExamData;
   'totals.set': (a: { examId: number; changes: TotalChange[] }) => ExamData;
-  'output.overviewCsv': (a: { classId: number }) => string | null;
+  'output.overviewCsv': (a: { courseId: number }) => string | null;
   'storage.info': (a: void) => StorageInfo;
   'storage.chooseDir': (a: void) => DirChoice | null;
   'storage.relocate': (a: { dir: string | null; overwrite: boolean }) => StorageState;
@@ -99,7 +107,6 @@ export interface ApiMethods {
   'exams.update': (a: { id: number; patch: ExamPatch }) => ExamData;
   'exams.duplicate': (a: { id: number }) => number;
   'exams.delete': (a: { id: number }) => void;
-  'exams.subjects': (a: void) => string[];
   'exams.all': (a: void) => ExamPick[];
   'tasks.add': (a: { examId: number; position: number }) => { data: ExamData; taskId: number };
   'tasks.update': (a: { id: number; label?: string; maxQp?: number }) => ExamData;
