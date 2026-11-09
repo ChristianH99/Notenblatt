@@ -60,7 +60,7 @@ Generated folders (`out/`, `dist/`, `coverage/`, `test-results/`, `playwright-re
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs on every push to `main` and every pull request (`windows-latest`): `npm ci` → lint → typecheck → third-party notices check → test → coverage → e2e. The E2E screenshots are uploaded as the `e2e-screenshots` artifact. CI does not build installers.
+`.github/workflows/ci.yml` runs on every push to `main` and every pull request (`windows-latest`): `npm ci` → lint → typecheck → third-party notices check → test → coverage → e2e. The E2E screenshots are uploaded as the `e2e-screenshots` artifact. CI does not build installers. A newer push to the same branch or pull request cancels the older run (`concurrency`); release builds for the same tag queue instead and are never cancelled.
 
 ## Dependencies
 

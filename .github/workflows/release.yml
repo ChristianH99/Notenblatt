@@ -11,6 +11,12 @@ on:
 permissions:
   contents: write
 
+# Runs for the same tag queue up instead of running in parallel. Never cancelled:
+# that could leave a published release without installers.
+concurrency:
+  group: release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: windows-latest
