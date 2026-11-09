@@ -181,10 +181,10 @@ export const DEFAULT_SETTINGS: Settings = {
   retentionMonths: '12',
   showGradeEquivalent: false,
   lastExamId: null,
-  defaultGradingSystem: 'NP15',
+  defaultGradingSystem: 'LIN6',
   categoryTemplate: DEFAULT_CATEGORY_TEMPLATE.map((t) => ({ ...t })),
   defaultRounding: 'half_up',
-  defaultRoundingDigits: 0,
+  defaultRoundingDigits: 1,
 };
 
 const NOW_SQL = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
@@ -226,10 +226,10 @@ export class Repo {
       retentionMonths: pick('retentionMonths', ['6', '12', '24', 'off'] as const, '12'),
       showGradeEquivalent: m.get('showGradeEquivalent') === '1',
       lastExamId: Number.isInteger(last) && last > 0 ? last : null,
-      defaultGradingSystem: pick('defaultGradingSystem', ['NP15', 'LIN6'] as const, 'NP15'),
+      defaultGradingSystem: pick('defaultGradingSystem', ['NP15', 'LIN6'] as const, 'LIN6'),
       categoryTemplate: parseCategoryTemplate(m.get('categoryTemplate')),
       defaultRounding: pick('defaultRounding', ['none', 'half_up', 'half_favor'] as const, 'half_up'),
-      defaultRoundingDigits: m.get('defaultRoundingDigits') === '1' ? 1 : 0,
+      defaultRoundingDigits: m.get('defaultRoundingDigits') === '0' ? 0 : 1,
     };
   }
 

@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { expectFlash, launch, navClick, netLog, SCREENSHOTS, tempDir } from './helpers';
+import { expectFlash, invoke, launch, navClick, netLog, SCREENSHOTS, tempDir } from './helpers';
 
 const SHOT = (name: string): string => path.join(SCREENSHOTS, name);
 
@@ -38,6 +38,8 @@ test('weighted overall average, per-subject weights, encryption and custom folde
   const dataDir = tempDir();
   const share = tempDir('nb-share-');
   let { app, page } = await launch(dataDir, { width: 1440, height: 900 });
+  // Written in Notenpunkte; the app's default for new subjects is Noten 1–6.
+  await invoke(page, 'settings.set', { key: 'defaultGradingSystem', value: 'NP15' });
 
   // class with three students
   await page.getByRole('button', { name: 'Klasse anlegen' }).click();

@@ -81,7 +81,7 @@ export function SettingsView(): React.JSX.Element {
           <div className={`${s.sectionBody} ${s.formGrid}`}>
             <label htmlFor="set-teacher">Lehrkraft</label>
             <SettingText id="set-teacher" value={st.teacher} onCommit={(v) => void setSetting('teacher', v)} placeholder="Name für neue Prüfungen" />
-            <label htmlFor="set-school">Schule (optional, für Ausdrucke)</label>
+            <label htmlFor="set-school">Schule</label>
             <SettingText id="set-school" value={st.school} onCommit={(v) => void setSetting('school', v)} />
             <label htmlFor="set-enter">Eingabetaste bewegt nach</label>
             <Select id="set-enter" value={st.enterDirection} onChange={(e) => void setSetting('enterDirection', e.target.value)}>

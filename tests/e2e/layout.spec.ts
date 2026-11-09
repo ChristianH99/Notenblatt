@@ -20,6 +20,8 @@ async function seed(page: Page): Promise<number> {
     return { lastName: i < 20 ? l : `${l}-Neumeier`, firstName: f };
   });
   await invoke(page, 'students.add', { classId, names });
+  // Written in Notenpunkte; the app's default for new subjects is Noten 1–6.
+  await invoke(page, 'settings.set', { key: 'defaultGradingSystem', value: 'NP15' });
   const courseId = await invoke<number>(page, 'courses.create', { classId, subject: 'Mathematik' });
   await invoke(page, 'courses.create', { classId, subject: 'Physik' });
   const examId = await invoke<number>(page, 'exams.create', {

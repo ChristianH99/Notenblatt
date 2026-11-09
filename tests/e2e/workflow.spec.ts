@@ -14,7 +14,7 @@ import {
   GOLDEN_TASK_AVG,
   GOLDEN_TASK_SHARE,
 } from '../fixtures/golden';
-import { cell, expectFlash, launch, mockSaveDialog, navClick, netLog, setClipboard, tempDir, type App } from './helpers';
+import { cell, expectFlash, invoke, launch, mockSaveDialog, navClick, netLog, setClipboard, tempDir, type App } from './helpers';
 
 const ABSENT = [10, 17, 18];
 const N_TASKS = GOLDEN_LABELS.length; // 17
@@ -72,6 +72,8 @@ test('complete workflow on an empty database', async () => {
 
   // 1 — empty database: three numbered steps
   await expect(page.getByRole('heading', { name: 'Erste Schritte' })).toBeVisible();
+  // Written in Notenpunkte; the app's default for new subjects is Noten 1–6.
+  await invoke(page, 'settings.set', { key: 'defaultGradingSystem', value: 'NP15' });
 
   // 2 — create class, paste 20 names (comma and tab variants)
   await page.getByRole('button', { name: 'Klasse anlegen' }).click();

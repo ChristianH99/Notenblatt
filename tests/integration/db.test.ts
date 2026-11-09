@@ -337,6 +337,15 @@ describe('secure erasure', () => {
 });
 
 describe('settings', () => {
+  it('new subjects default to grades 1,0–6,0 with a final mark to one decimal', () => {
+    expect(repo.getSettings()).toMatchObject({ defaultGradingSystem: 'LIN6', defaultRounding: 'half_up', defaultRoundingDigits: 1 });
+    const courseId = repo.createCourse(repo.createClass('K', '2025/26'), 'Mathematik');
+    expect(repo.getCourse(courseId)).toMatchObject({ gradingSystem: 'LIN6', finalRounding: 'half_up', finalDigits: 1 });
+    repo.setSetting('defaultRoundingDigits', '0');
+    repo.setSetting('defaultGradingSystem', 'NP15');
+    expect(repo.getSettings()).toMatchObject({ defaultGradingSystem: 'NP15', defaultRoundingDigits: 0 });
+  });
+
   it('stores and validates settings', () => {
     expect(repo.getSettings()).toMatchObject({ enterDirection: 'down', touchMode: 'auto', retentionMonths: '12', lastExamId: null });
     repo.setSetting('enterDirection', 'right');

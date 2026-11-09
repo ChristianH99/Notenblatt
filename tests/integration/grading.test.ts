@@ -18,6 +18,9 @@ beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nb-gr-'));
   mgr = new DbManager(dir, { logN: 12, heartbeatMs: 3_600_000 });
   repo = mgr.open();
+  // These tests are written in Notenpunkte; the app's defaults for new subjects are Noten 1–6 with one decimal.
+  repo.setSetting('defaultGradingSystem', 'NP15');
+  repo.setSetting('defaultRoundingDigits', '0');
 });
 afterEach(() => {
   mgr.shutdown(false);

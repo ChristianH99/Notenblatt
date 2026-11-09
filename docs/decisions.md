@@ -111,6 +111,7 @@ Details the [specification](specification.md) leaves open, or where the implemen
 87. **Subject names are unique per class, case-insensitively** (unique index with `COLLATE NOCASE`, plus a check with a readable message).
 88. **Migration v4 rebuilds `exam` and `grade_category`** (SQLite cannot drop a column that is part of a foreign key). Every class gets one course per distinct trimmed, case-insensitive subject of its exams (spelling of the earliest exam), with the class's grading system and rounding and its own copy of the categories; exams keep their ids and point to the copied category. Classes without exams get no course: a course needs a subject name, and inventing one would be worse than asking the teacher to add it. To rebuild tables without cascading deletes, `migrate()` turns foreign keys off around the migration steps and runs `foreign_key_check` inside each step before it commits, so a step that would leave dangling references is rolled back (decision 77 applies).
 89. **Copying a class copies its courses** (subject, members, categories, grading system, rounding), not their exams, since a class usually keeps its subjects into the next school year.
+90. **Defaults for new subjects: Noten 1,0–6,0 with a final mark to one decimal** (was Notenpunkte, whole marks). Existing subjects and saved settings keep their values; only an unset setting falls back to the new default.
 
 ## Repository and release process
 

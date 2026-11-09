@@ -76,13 +76,13 @@ const DEFAULT_SETTINGS: Settings = {
   retentionMonths: '12',
   showGradeEquivalent: false,
   lastExamId: null,
-  defaultGradingSystem: 'NP15',
+  defaultGradingSystem: 'LIN6',
   categoryTemplate: [
     { name: 'Schriftlich', weightC: 300, defaultMode: 'points' },
     { name: 'Mündlich', weightC: 100, defaultMode: 'grade' },
   ],
   defaultRounding: 'half_up',
-  defaultRoundingDigits: 0,
+  defaultRoundingDigits: 1,
 };
 
 export const useStore = create<State>(() => ({
