@@ -3,9 +3,12 @@ import type { ClassTreeItem, ExamData, MarkChange, ScoreChange, Settings, Startu
 import type { SettingKey } from '@shared/api';
 import { ApiError, call } from './api';
 
+export type CourseTab = 'overview' | 'exams' | 'grading';
+
 export type Route =
   | { view: 'home' }
   | { view: 'class'; classId: number }
+  | { view: 'course'; courseId: number; tab?: CourseTab }
   | { view: 'exam'; examId: number }
   | { view: 'settings' }
   | { view: 'help' }
@@ -13,12 +16,14 @@ export type Route =
 
 export type DialogState =
   | { kind: 'newClass' }
-  | { kind: 'newExam'; classId: number | null; categoryId?: number }
+  | { kind: 'newCourse'; classId: number }
+  | { kind: 'newExam'; courseId: number | null; categoryId?: number }
   | { kind: 'corrupt'; renamedTo: string }
   | { kind: 'backupExport' }
   | { kind: 'backupImport' }
   | { kind: 'wipe' }
   | { kind: 'deleteClass'; classId: number }
+  | { kind: 'deleteCourse'; courseId: number }
   | { kind: 'deleteExam'; examId: number }
   | { kind: 'deleteStudents'; ids: number[] }
   | { kind: 'fullKey'; examId: number }

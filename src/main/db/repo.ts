@@ -19,6 +19,9 @@ import type {
   Scheme,
   ClassDeletionInfo,
   ClassTreeItem,
+  Course,
+  CourseDeletionInfo,
+  CourseTreeItem,
   Exam,
   ExamData,
   ExamPatch,
@@ -48,6 +51,13 @@ interface ClassRow {
   id: number;
   name: string;
   school_year: string;
+  created_at: string;
+  updated_at: string;
+}
+interface CourseRow {
+  id: number;
+  class_id: number;
+  subject: string;
   grading_system: Scheme;
   final_rounding: RoundingRule;
   final_digits: number;
@@ -60,8 +70,10 @@ interface StudentRow {
   last_name: string;
   first_name: string;
 }
+/** An exam row joined with class_id and subject of its course (see EXAM_SELECT). */
 interface ExamRow {
   id: number;
+  course_id: number;
   class_id: number;
   kind: string;
   number: string | null;
@@ -76,7 +88,7 @@ interface ExamRow {
 }
 interface CategoryRow {
   id: number;
-  class_id: number;
+  course_id: number;
   name: string;
   weight_c: number;
   default_mode: EntryMode;
@@ -94,6 +106,13 @@ const toClass = (r: ClassRow): SchoolClass => ({
   id: r.id,
   name: r.name,
   schoolYear: r.school_year,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
+const toCourse = (r: CourseRow): Course => ({
+  id: r.id,
+  classId: r.class_id,
+  subject: r.subject,
   gradingSystem: r.grading_system,
   finalRounding: r.final_rounding,
   finalDigits: r.final_digits === 1 ? 1 : 0,
@@ -108,6 +127,7 @@ const toStudent = (r: StudentRow): Student => ({
 });
 const toExam = (r: ExamRow): Exam => ({
   id: r.id,
+  courseId: r.course_id,
   classId: r.class_id,
   kind: r.kind,
   number: r.number ?? '',
@@ -122,7 +142,7 @@ const toExam = (r: ExamRow): Exam => ({
 });
 const toCategory = (r: CategoryRow): GradeCategory => ({
   id: r.id,
-  classId: r.class_id,
+  courseId: r.course_id,
   name: r.name,
   weightC: r.weight_c,
   defaultMode: r.default_mode,
@@ -168,6 +188,8 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 const NOW_SQL = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
+/** Exam rows with class and subject of their course; append WHERE / ORDER BY. */
+const EXAM_SELECT = 'SELECT e.*, c.class_id, c.subject FROM exam e JOIN course c ON c.id = e.course_id';
 
 export class Repo {
   constructor(readonly db: Database.Database) {}
@@ -226,20 +248,21 @@ export class Repo {
         (r) => [r.class_id, r.n],
       ),
     );
-    const exams = (this.db.prepare('SELECT * FROM exam ORDER BY exam_date DESC, id DESC').all() as ExamRow[]).map(toExam);
-    const categories = (this.db.prepare('SELECT * FROM grade_category ORDER BY position, id').all() as CategoryRow[]).map(toCategory);
     const collator = new Intl.Collator('de', { numeric: true, sensitivity: 'base' });
-    return classes
-      .sort((a, b) => compareSchoolYearDesc(a.schoolYear, b.schoolYear) || collator.compare(a.name, b.name) || a.id - b.id)
-      .map((c) => ({
-        ...c,
-        studentCount: counts.get(c.id) ?? 0,
+    const courses = (this.db.prepare('SELECT * FROM course').all() as CourseRow[]).map(toCourse).sort((a, b) => collator.compare(a.subject, b.subject) || a.id - b.id);
+    const members = this.db.prepare('SELECT course_id, student_id FROM course_student').all() as { course_id: number; student_id: number }[];
+    const exams = (this.db.prepare(`${EXAM_SELECT} ORDER BY e.exam_date DESC, e.id DESC`).all() as ExamRow[]).map(toExam);
+    const categories = (this.db.prepare('SELECT * FROM grade_category ORDER BY position, id').all() as CategoryRow[]).map(toCategory);
+    const courseItems = courses.map(
+      (k): CourseTreeItem => ({
+        ...k,
+        memberIds: members.filter((m) => m.course_id === k.id).map((m) => m.student_id),
         exams: exams
-          .filter((e) => e.classId === c.id)
+          .filter((e) => e.courseId === k.id)
           .map(
             (e): ExamSummary => ({
               id: e.id,
-              classId: e.classId,
+              courseId: e.courseId,
               kind: e.kind,
               number: e.number,
               subject: e.subject,
@@ -249,40 +272,220 @@ export class Repo {
               categoryId: e.categoryId,
             }),
           ),
-        categories: categories.filter((k) => k.classId === c.id),
+        categories: categories.filter((c) => c.courseId === k.id),
+      }),
+    );
+    return classes
+      .sort((a, b) => compareSchoolYearDesc(a.schoolYear, b.schoolYear) || collator.compare(a.name, b.name) || a.id - b.id)
+      .map((c) => ({
+        ...c,
+        studentCount: counts.get(c.id) ?? 0,
+        courses: courseItems.filter((k) => k.classId === c.id),
       }));
   }
 
-  /** Creates a class; categories and grading system come from the template in the settings. */
   createClass(name: string, schoolYear: string): number {
     const n = name.trim();
     if (!n) throw new UserError('Bitte einen Klassennamen eingeben.');
+    return Number(this.db.prepare('INSERT INTO school_class(name, school_year) VALUES (?, ?)').run(n, schoolYear.trim()).lastInsertRowid);
+  }
+
+  updateClass(id: number, name: string, schoolYear: string): void {
+    const n = name.trim();
+    if (!n) throw new UserError('Bitte einen Klassennamen eingeben.');
+    this.getClass(id);
+    this.db.prepare(`UPDATE school_class SET name = ?, school_year = ?, updated_at = ${NOW_SQL} WHERE id = ?`).run(n, schoolYear.trim(), id);
+  }
+
+  /**
+   * Copies the class with its students (names only) and its courses (subject, members, weighting,
+   * grading system and rounding), without exams.
+   */
+  copyClass(id: number, name: string, schoolYear: string): number {
     return this.tx(() => {
+      this.getClass(id);
+      const newId = this.createClass(name, schoolYear);
+      const insStudent = this.db.prepare('INSERT INTO student(class_id, last_name, first_name) VALUES (?, ?, ?)');
+      const studentMap = new Map<number, number>();
+      for (const st of this.db.prepare('SELECT * FROM student WHERE class_id = ? ORDER BY id').all(id) as StudentRow[]) {
+        studentMap.set(st.id, Number(insStudent.run(newId, st.last_name, st.first_name).lastInsertRowid));
+      }
+      const insMember = this.db.prepare('INSERT INTO course_student(course_id, student_id) VALUES (?, ?)');
+      for (const k of this.courses(id)) {
+        const cid = Number(
+          this.db
+            .prepare('INSERT INTO course(class_id, subject, grading_system, final_rounding, final_digits) VALUES (?, ?, ?, ?, ?)')
+            .run(newId, k.subject, k.gradingSystem, k.finalRounding, k.finalDigits).lastInsertRowid,
+        );
+        this.db
+          .prepare(
+            'INSERT INTO grade_category(course_id, name, weight_c, default_mode, position) SELECT ?, name, weight_c, default_mode, position FROM grade_category WHERE course_id = ? ORDER BY position, id',
+          )
+          .run(cid, k.id);
+        for (const sid of this.memberIds(k.id)) insMember.run(cid, studentMap.get(sid) as number);
+      }
+      return newId;
+    });
+  }
+
+  classDeletionInfo(id: number): ClassDeletionInfo {
+    const c = this.getClass(id);
+    const one = (sql: string): number => (this.db.prepare(sql).get(id) as { n: number }).n;
+    const ofClass = 'SELECT e.id FROM exam e JOIN course k ON k.id = e.course_id WHERE k.class_id = ?';
+    return {
+      name: c.name,
+      students: one('SELECT COUNT(*) n FROM student WHERE class_id = ?'),
+      courses: one('SELECT COUNT(*) n FROM course WHERE class_id = ?'),
+      exams: one(`SELECT COUNT(*) n FROM (${ofClass})`),
+      scores:
+        one(`SELECT COUNT(*) n FROM score s JOIN task t ON t.id = s.task_id WHERE t.exam_id IN (${ofClass})`) +
+        one(`SELECT COUNT(*) n FROM mark WHERE exam_id IN (${ofClass})`) +
+        one(`SELECT COUNT(*) n FROM score_total WHERE exam_id IN (${ofClass})`),
+    };
+  }
+
+  deleteClass(id: number): void {
+    this.tx(() => {
+      this.getClass(id);
+      this.db.prepare('DELETE FROM school_class WHERE id = ?').run(id);
+    });
+  }
+
+  // ───────────── courses ─────────────
+
+  getCourse(id: number): Course {
+    const r = this.db.prepare('SELECT * FROM course WHERE id = ?').get(id) as CourseRow | undefined;
+    if (!r) throw new UserError('Das Fach wurde nicht gefunden.');
+    return toCourse(r);
+  }
+
+  courses(classId: number): Course[] {
+    return (this.db.prepare('SELECT * FROM course WHERE class_id = ? ORDER BY id').all(classId) as CourseRow[]).map(toCourse);
+  }
+
+  memberIds(courseId: number): number[] {
+    return (this.db.prepare('SELECT student_id FROM course_student WHERE course_id = ? ORDER BY student_id').all(courseId) as { student_id: number }[]).map(
+      (r) => r.student_id,
+    );
+  }
+
+  /** Students of the course, in name order. */
+  courseStudents(courseId: number): Student[] {
+    return (this.db.prepare('SELECT s.* FROM course_student m JOIN student s ON s.id = m.student_id WHERE m.course_id = ?').all(courseId) as StudentRow[])
+      .map(toStudent)
+      .sort(compareNames);
+  }
+
+  private checkSubject(classId: number, subject: string, exceptId: number | null): string {
+    const n = subject.trim();
+    if (!n) throw new UserError('Bitte ein Fach angeben.');
+    const dup = this.db.prepare('SELECT id FROM course WHERE class_id = ? AND subject = ? COLLATE NOCASE AND id <> ?').get(classId, n, exceptId ?? 0);
+    if (dup) throw new UserError(`Die Klasse hat bereits das Fach „${n}“.`);
+    return n;
+  }
+
+  /**
+   * Adds a subject to a class. All students of the class take part; categories, grading system
+   * and rounding come from the template in the settings.
+   */
+  createCourse(classId: number, subject: string): number {
+    return this.tx(() => {
+      this.getClass(classId);
+      const n = this.checkSubject(classId, subject, null);
       const st = this.getSettings();
       const id = Number(
         this.db
-          .prepare('INSERT INTO school_class(name, school_year, grading_system, final_rounding, final_digits) VALUES (?, ?, ?, ?, ?)')
-          .run(n, schoolYear.trim(), st.defaultGradingSystem, st.defaultRounding, st.defaultRoundingDigits).lastInsertRowid,
+          .prepare('INSERT INTO course(class_id, subject, grading_system, final_rounding, final_digits) VALUES (?, ?, ?, ?, ?)')
+          .run(classId, n, st.defaultGradingSystem, st.defaultRounding, st.defaultRoundingDigits).lastInsertRowid,
       );
-      const ins = this.db.prepare('INSERT INTO grade_category(class_id, name, weight_c, default_mode, position) VALUES (?, ?, ?, ?, ?)');
+      const ins = this.db.prepare('INSERT INTO grade_category(course_id, name, weight_c, default_mode, position) VALUES (?, ?, ?, ?, ?)');
       st.categoryTemplate.forEach((t, i) => ins.run(id, t.name, t.weightC, t.defaultMode, i));
+      this.db.prepare('INSERT INTO course_student(course_id, student_id) SELECT ?, id FROM student WHERE class_id = ?').run(id, classId);
       return id;
     });
   }
 
+  renameCourse(id: number, subject: string): void {
+    this.tx(() => {
+      const k = this.getCourse(id);
+      const n = this.checkSubject(k.classId, subject, id);
+      this.db.prepare(`UPDATE course SET subject = ?, updated_at = ${NOW_SQL} WHERE id = ?`).run(n, id);
+    });
+  }
+
+  courseDeletionInfo(id: number): CourseDeletionInfo {
+    const k = this.getCourse(id);
+    const one = (sql: string): number => (this.db.prepare(sql).get(id) as { n: number }).n;
+    return {
+      subject: k.subject,
+      className: this.getClass(k.classId).name,
+      exams: one('SELECT COUNT(*) n FROM exam WHERE course_id = ?'),
+      scores:
+        one('SELECT COUNT(*) n FROM score s JOIN task t ON t.id = s.task_id JOIN exam e ON e.id = t.exam_id WHERE e.course_id = ?') +
+        one('SELECT COUNT(*) n FROM mark m JOIN exam e ON e.id = m.exam_id WHERE e.course_id = ?') +
+        one('SELECT COUNT(*) n FROM score_total s JOIN exam e ON e.id = s.exam_id WHERE e.course_id = ?'),
+    };
+  }
+
+  /** Deletes the course with its exams and results; the students stay in the class. */
+  deleteCourse(id: number): void {
+    this.tx(() => {
+      this.getCourse(id);
+      this.db.prepare('DELETE FROM course WHERE id = ?').run(id);
+    });
+  }
+
   /**
-   * Grading system and final-mark rounding of a class. Changing the system switches all
-   * exams of the class (point exams are simply re-graded). It is refused while a mark-only
+   * Adds a student of the class to the course (present in all its exams) or removes them.
+   * Removing is refused while the student has results in an exam of the course.
+   */
+  setCourseMember(id: number, studentId: number, member: boolean): void {
+    this.tx(() => {
+      const k = this.getCourse(id);
+      const st = this.db.prepare('SELECT * FROM student WHERE id = ?').get(studentId) as StudentRow | undefined;
+      if (!st || st.class_id !== k.classId) throw new UserError('Schüler/in gehört nicht zu dieser Klasse.');
+      if (member) {
+        this.db.prepare('INSERT OR IGNORE INTO course_student(course_id, student_id) VALUES (?, ?)').run(id, studentId);
+        this.db.prepare("INSERT OR IGNORE INTO participation(exam_id, student_id, status) SELECT id, ?, 'present' FROM exam WHERE course_id = ?").run(studentId, id);
+        return;
+      }
+      const used = this.db
+        .prepare(
+          `${EXAM_SELECT} WHERE e.course_id = ? AND (
+             EXISTS (SELECT 1 FROM score s JOIN task t ON t.id = s.task_id WHERE t.exam_id = e.id AND s.student_id = ?)
+             OR EXISTS (SELECT 1 FROM mark m WHERE m.exam_id = e.id AND m.student_id = ?)
+             OR EXISTS (SELECT 1 FROM score_total x WHERE x.exam_id = e.id AND x.student_id = ?))
+           ORDER BY e.exam_date, e.id LIMIT 1`,
+        )
+        .get(id, studentId, studentId, studentId) as ExamRow | undefined;
+      if (used) {
+        throw new UserError(
+          `${st.last_name}, ${st.first_name} hat in „${examTitle(toExam(used))}“ bereits Ergebnisse. Löschen Sie diese zuerst, um sie bzw. ihn aus dem Fach zu nehmen.`,
+        );
+      }
+      this.db.prepare('DELETE FROM participation WHERE student_id = ? AND exam_id IN (SELECT id FROM exam WHERE course_id = ?)').run(studentId, id);
+      this.db.prepare('DELETE FROM course_student WHERE course_id = ? AND student_id = ?').run(id, studentId);
+    });
+  }
+
+  /** Subjects used before (for autocompletion). */
+  subjects(): string[] {
+    return (this.db.prepare('SELECT DISTINCT subject FROM course ORDER BY subject COLLATE NOCASE').all() as { subject: string }[]).map((r) => r.subject);
+  }
+
+  /**
+   * Grading system and final-mark rounding of a course. Changing the system switches all
+   * exams of the course (point exams are simply re-graded). It is refused while a mark-only
    * exam holds marks, because those numbers would change their meaning.
    */
-  updateClassGrading(id: number, patch: { gradingSystem?: Scheme; finalRounding?: RoundingRule; finalDigits?: RoundingDigits }): void {
+  updateCourseGrading(id: number, patch: { gradingSystem?: Scheme; finalRounding?: RoundingRule; finalDigits?: RoundingDigits }): void {
     this.tx(() => {
-      const c = this.getClass(id);
+      const c = this.getCourse(id);
       const system = patch.gradingSystem ?? c.gradingSystem;
       if (system !== c.gradingSystem) {
         const marked = this.db
           .prepare(
-            "SELECT * FROM exam e WHERE e.class_id = ? AND e.entry_mode = 'grade' AND e.scheme <> ? AND EXISTS (SELECT 1 FROM mark m WHERE m.exam_id = e.id) ORDER BY e.exam_date, e.id LIMIT 1",
+            `${EXAM_SELECT} WHERE e.course_id = ? AND e.entry_mode = 'grade' AND e.scheme <> ? AND EXISTS (SELECT 1 FROM mark m WHERE m.exam_id = e.id) ORDER BY e.exam_date, e.id LIMIT 1`,
           )
           .get(id, system) as ExamRow | undefined;
         if (marked) {
@@ -290,18 +493,18 @@ export class Repo {
             `Das Notensystem kann nicht geändert werden: In „${examTitle(toExam(marked))}“ sind bereits Noten eingetragen. Löschen Sie diese Noten zuerst.`,
           );
         }
-        this.db.prepare(`UPDATE exam SET scheme = ?, updated_at = ${NOW_SQL} WHERE class_id = ?`).run(system, id);
+        this.db.prepare(`UPDATE exam SET scheme = ?, updated_at = ${NOW_SQL} WHERE course_id = ?`).run(system, id);
       }
       this.db
-        .prepare(`UPDATE school_class SET grading_system = ?, final_rounding = ?, final_digits = ?, updated_at = ${NOW_SQL} WHERE id = ?`)
+        .prepare(`UPDATE course SET grading_system = ?, final_rounding = ?, final_digits = ?, updated_at = ${NOW_SQL} WHERE id = ?`)
         .run(system, patch.finalRounding ?? c.finalRounding, patch.finalDigits ?? c.finalDigits, id);
     });
   }
 
   // ───────────── categories ─────────────
 
-  categories(classId: number): GradeCategory[] {
-    return (this.db.prepare('SELECT * FROM grade_category WHERE class_id = ? ORDER BY position, id').all(classId) as CategoryRow[]).map(toCategory);
+  categories(courseId: number): GradeCategory[] {
+    return (this.db.prepare('SELECT * FROM grade_category WHERE course_id = ? ORDER BY position, id').all(courseId) as CategoryRow[]).map(toCategory);
   }
 
   private categoryRow(id: number): GradeCategory {
@@ -317,13 +520,15 @@ export class Repo {
     return n;
   }
 
-  addCategory(classId: number, c: { name: string; weightC: number; defaultMode: EntryMode }): number {
+  addCategory(courseId: number, c: { name: string; weightC: number; defaultMode: EntryMode }): number {
     return this.tx(() => {
-      this.getClass(classId);
+      this.getCourse(courseId);
       const n = this.checkCategory(c.name, c.weightC);
-      const pos = (this.db.prepare('SELECT COALESCE(MAX(position), -1) + 1 p FROM grade_category WHERE class_id = ?').get(classId) as { p: number }).p;
+      const pos = (this.db.prepare('SELECT COALESCE(MAX(position), -1) + 1 p FROM grade_category WHERE course_id = ?').get(courseId) as { p: number }).p;
       return Number(
-        this.db.prepare('INSERT INTO grade_category(class_id, name, weight_c, default_mode, position) VALUES (?, ?, ?, ?, ?)').run(classId, n, c.weightC, c.defaultMode, pos).lastInsertRowid,
+        this.db
+          .prepare('INSERT INTO grade_category(course_id, name, weight_c, default_mode, position) VALUES (?, ?, ?, ?, ?)')
+          .run(courseId, n, c.weightC, c.defaultMode, pos).lastInsertRowid,
       );
     });
   }
@@ -341,7 +546,7 @@ export class Repo {
   moveCategory(id: number, position: number): void {
     this.tx(() => {
       const cur = this.categoryRow(id);
-      const ids = this.categories(cur.classId).map((c) => c.id).filter((x) => x !== id);
+      const ids = this.categories(cur.courseId).map((c) => c.id).filter((x) => x !== id);
       ids.splice(Math.max(0, Math.min(position, ids.length)), 0, id);
       const up = this.db.prepare('UPDATE grade_category SET position = ? WHERE id = ?');
       ids.forEach((cid, i) => up.run(i, cid));
@@ -355,53 +560,8 @@ export class Repo {
       if (used > 0) {
         throw new UserError(`Die Kategorie „${cur.name}“ wird von ${used === 1 ? '1 Prüfung' : `${used} Prüfungen`} verwendet. Ordnen Sie diese zuerst einer anderen Kategorie zu.`);
       }
-      if (this.categories(cur.classId).length <= 1) throw new UserError('Eine Klasse braucht mindestens eine Kategorie.');
+      if (this.categories(cur.courseId).length <= 1) throw new UserError('Ein Fach braucht mindestens eine Kategorie.');
       this.db.prepare('DELETE FROM grade_category WHERE id = ?').run(id);
-    });
-  }
-
-  updateClass(id: number, name: string, schoolYear: string): void {
-    const n = name.trim();
-    if (!n) throw new UserError('Bitte einen Klassennamen eingeben.');
-    this.getClass(id);
-    this.db.prepare(`UPDATE school_class SET name = ?, school_year = ?, updated_at = ${NOW_SQL} WHERE id = ?`).run(n, schoolYear.trim(), id);
-  }
-
-  /** Copies the class with its students (names only), without exams. */
-  copyClass(id: number, name: string, schoolYear: string): number {
-    return this.tx(() => {
-      this.getClass(id);
-      const src = this.getClass(id);
-      const newId = this.createClass(name, schoolYear);
-      // The copy keeps the source class's weighting, not the template.
-      this.db.prepare('DELETE FROM grade_category WHERE class_id = ?').run(newId);
-      this.db
-        .prepare('INSERT INTO grade_category(class_id, name, weight_c, default_mode, position) SELECT ?, name, weight_c, default_mode, position FROM grade_category WHERE class_id = ? ORDER BY position, id')
-        .run(newId, id);
-      this.updateClassGrading(newId, { gradingSystem: src.gradingSystem, finalRounding: src.finalRounding, finalDigits: src.finalDigits });
-      this.db.prepare('INSERT INTO student(class_id, last_name, first_name) SELECT ?, last_name, first_name FROM student WHERE class_id = ? ORDER BY id').run(newId, id);
-      return newId;
-    });
-  }
-
-  classDeletionInfo(id: number): ClassDeletionInfo {
-    const c = this.getClass(id);
-    const one = (sql: string): number => (this.db.prepare(sql).get(id) as { n: number }).n;
-    return {
-      name: c.name,
-      students: one('SELECT COUNT(*) n FROM student WHERE class_id = ?'),
-      exams: one('SELECT COUNT(*) n FROM exam WHERE class_id = ?'),
-      scores:
-        one('SELECT COUNT(*) n FROM score s JOIN task t ON t.id = s.task_id JOIN exam e ON e.id = t.exam_id WHERE e.class_id = ?') +
-        one('SELECT COUNT(*) n FROM mark m JOIN exam e ON e.id = m.exam_id WHERE e.class_id = ?') +
-        one('SELECT COUNT(*) n FROM score_total s JOIN exam e ON e.id = s.exam_id WHERE e.class_id = ?'),
-    };
-  }
-
-  deleteClass(id: number): void {
-    this.tx(() => {
-      this.getClass(id);
-      this.db.prepare('DELETE FROM school_class WHERE id = ?').run(id);
     });
   }
 
@@ -417,12 +577,17 @@ export class Repo {
     return this.tx(() => {
       this.getClass(classId);
       const ins = this.db.prepare('INSERT INTO student(class_id, last_name, first_name) VALUES (?, ?, ?)');
-      const part = this.db.prepare("INSERT INTO participation(exam_id, student_id, status) SELECT id, ?, 'present' FROM exam WHERE class_id = ?");
+      // New students take part in every course of the class; they can be taken out per course.
+      const member = this.db.prepare('INSERT INTO course_student(course_id, student_id) SELECT id, ? FROM course WHERE class_id = ?');
+      const part = this.db.prepare(
+        "INSERT INTO participation(exam_id, student_id, status) SELECT e.id, ?, 'present' FROM exam e JOIN course c ON c.id = e.course_id WHERE c.class_id = ?",
+      );
       const ids: number[] = [];
       for (const n of names) {
         const last = n.lastName.trim();
         if (!last) throw new UserError('Bitte einen Nachnamen eingeben.');
         const id = Number(ins.run(classId, last, n.firstName.trim()).lastInsertRowid);
+        member.run(id, classId);
         part.run(id, classId);
         ids.push(id);
       }
@@ -464,7 +629,7 @@ export class Repo {
   // ───────────── exams ─────────────
 
   private examRow(id: number): Exam {
-    const r = this.db.prepare('SELECT * FROM exam WHERE id = ?').get(id) as ExamRow | undefined;
+    const r = this.db.prepare(`${EXAM_SELECT} WHERE e.id = ?`).get(id) as ExamRow | undefined;
     if (!r) throw new UserError('Die Prüfung wurde nicht gefunden.');
     return toExam(r);
   }
@@ -497,6 +662,7 @@ export class Repo {
     return {
       exam,
       schoolClass: this.getClass(exam.classId),
+      course: this.getCourse(exam.courseId),
       tasks: this.tasks(examId),
       students: this.examStudents(examId),
       scores,
@@ -505,26 +671,31 @@ export class Repo {
     };
   }
 
-  /** All data for the class grade overview. */
-  overview(classId: number): OverviewData {
-    const schoolClass = this.getClass(classId);
-    const ids = (this.db.prepare('SELECT id FROM exam WHERE class_id = ?').all(classId) as { id: number }[]).map((r) => r.id);
-    return { schoolClass, categories: this.categories(classId), students: this.listStudents(classId), exams: ids.map((id) => this.getExamData(id)) };
+  /** All data for the grade overview of one course. */
+  overview(courseId: number): OverviewData {
+    const course = this.getCourse(courseId);
+    const ids = (this.db.prepare('SELECT id FROM exam WHERE course_id = ?').all(courseId) as { id: number }[]).map((r) => r.id);
+    return {
+      schoolClass: this.getClass(course.classId),
+      course,
+      categories: this.categories(courseId),
+      students: this.courseStudents(courseId),
+      exams: ids.map((id) => this.getExamData(id)),
+    };
   }
 
-  private resolveCategory(classId: number, categoryId: number | null): number | null {
-    if (categoryId === null) return this.categories(classId)[0]?.id ?? null;
+  private resolveCategory(courseId: number, categoryId: number | null): number | null {
+    if (categoryId === null) return this.categories(courseId)[0]?.id ?? null;
     const c = this.categoryRow(categoryId);
-    if (c.classId !== classId) throw new UserError('Die Kategorie gehört nicht zu dieser Klasse.');
+    if (c.courseId !== courseId) throw new UserError('Die Kategorie gehört nicht zu diesem Fach.');
     return c.id;
   }
 
   createExam(input: NewExamInput): number {
     return this.tx(() => {
-      const scheme = this.getClass(input.classId).gradingSystem;
+      const scheme = this.getCourse(input.courseId).gradingSystem;
       if (!input.kind.trim()) throw new UserError('Bitte die Art der Prüfung angeben.');
-      if (!input.subject.trim()) throw new UserError('Bitte ein Fach angeben.');
-      const categoryId = this.resolveCategory(input.classId, input.categoryId);
+      const categoryId = this.resolveCategory(input.courseId, input.categoryId);
       let structure: { label: string; maxQp: number }[];
       if (input.entryMode === 'grade') {
         structure = [];
@@ -543,13 +714,12 @@ export class Repo {
       const id = Number(
         this.db
           .prepare(
-            'INSERT INTO exam(class_id, kind, number, subject, exam_date, teacher, scheme, step_qp, category_id, entry_mode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO exam(course_id, kind, number, exam_date, teacher, scheme, step_qp, category_id, entry_mode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
           )
           .run(
-            input.classId,
+            input.courseId,
             input.kind.trim(),
             input.number.trim(),
-            input.subject.trim(),
             input.examDate,
             input.teacher.trim(),
             scheme,
@@ -561,7 +731,7 @@ export class Repo {
       );
       const insT = this.db.prepare('INSERT INTO task(exam_id, position, label, max_qp) VALUES (?, ?, ?, ?)');
       structure.forEach((t, i) => insT.run(id, i, t.label, t.maxQp));
-      this.db.prepare("INSERT INTO participation(exam_id, student_id, status) SELECT ?, id, 'present' FROM student WHERE class_id = ?").run(id, input.classId);
+      this.db.prepare("INSERT INTO participation(exam_id, student_id, status) SELECT ?, student_id, 'present' FROM course_student WHERE course_id = ?").run(id, input.courseId);
       return id;
     });
   }
@@ -570,15 +740,14 @@ export class Repo {
     this.tx(() => {
       const cur = this.examRow(id);
       if (patch.kind !== undefined && !patch.kind.trim()) throw new UserError('Die Art darf nicht leer sein.');
-      if (patch.subject !== undefined && !patch.subject.trim()) throw new UserError('Das Fach darf nicht leer sein.');
       if (patch.stepQp !== undefined && patch.stepQp > cur.stepQp) this.assertStepFits(id, patch.stepQp);
-      const categoryId = patch.categoryId !== undefined ? this.resolveCategory(cur.classId, patch.categoryId) : cur.categoryId;
+      const categoryId = patch.categoryId !== undefined ? this.resolveCategory(cur.courseId, patch.categoryId) : cur.categoryId;
       const next = { ...cur, ...patch };
       this.db
         .prepare(
-          `UPDATE exam SET kind = ?, number = ?, subject = ?, exam_date = ?, teacher = ?, scheme = ?, step_qp = ?, notes = ?, category_id = ?, updated_at = ${NOW_SQL} WHERE id = ?`,
+          `UPDATE exam SET kind = ?, number = ?, exam_date = ?, teacher = ?, scheme = ?, step_qp = ?, notes = ?, category_id = ?, updated_at = ${NOW_SQL} WHERE id = ?`,
         )
-        .run(next.kind.trim(), next.number.trim(), next.subject.trim(), next.examDate, next.teacher.trim(), next.scheme, next.stepQp, next.notes, categoryId, id);
+        .run(next.kind.trim(), next.number.trim(), next.examDate, next.teacher.trim(), next.scheme, next.stepQp, next.notes, categoryId, id);
     });
   }
 
@@ -615,10 +784,9 @@ export class Repo {
     return this.tx(() => {
       const e = this.examRow(id);
       return this.createExam({
-        classId: e.classId,
+        courseId: e.courseId,
         kind: e.kind,
         number: e.number,
-        subject: e.subject,
         examDate: todayIso(),
         teacher: e.teacher,
         stepQp: e.stepQp,
@@ -637,19 +805,17 @@ export class Repo {
     });
   }
 
-  subjects(): string[] {
-    return (this.db.prepare('SELECT DISTINCT subject FROM exam ORDER BY subject COLLATE NOCASE').all() as { subject: string }[]).map((r) => r.subject);
-  }
-
-  allExams(): { id: number; title: string; className: string; schoolYear: string; stepQp: StepQp; taskCount: number }[] {
+  allExams(): { id: number; title: string; className: string; subject: string; schoolYear: string; stepQp: StepQp; taskCount: number }[] {
     const rows = this.db
       .prepare(
-        "SELECT e.*, c.name class_name, c.school_year, (SELECT COUNT(*) FROM task t WHERE t.exam_id = e.id) task_count FROM exam e JOIN school_class c ON c.id = e.class_id WHERE e.entry_mode = 'points' ORDER BY e.exam_date DESC, e.id DESC",
+        `SELECT e.*, k.class_id, k.subject, c.name class_name, c.school_year, (SELECT COUNT(*) FROM task t WHERE t.exam_id = e.id) task_count
+         FROM exam e JOIN course k ON k.id = e.course_id JOIN school_class c ON c.id = k.class_id
+         WHERE e.entry_mode = 'points' ORDER BY e.exam_date DESC, e.id DESC`,
       )
       .all() as (ExamRow & { class_name: string; school_year: string; task_count: number })[];
     return rows.map((r) => {
       const e = toExam(r);
-      return { id: e.id, title: examTitle(e), className: r.class_name, schoolYear: r.school_year, stepQp: e.stepQp, taskCount: r.task_count };
+      return { id: e.id, title: examTitle(e), className: r.class_name, subject: e.subject, schoolYear: r.school_year, stepQp: e.stepQp, taskCount: r.task_count };
     });
   }
 

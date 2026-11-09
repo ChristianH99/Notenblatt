@@ -1,7 +1,8 @@
 import { useStore } from '../store';
 import { ClassDialog } from './ClassDialog';
+import { CourseDialog } from './CourseDialog';
 import { BackupExportDialog, BackupImportDialog, CorruptDialog, WipeDialog } from './DataDialogs';
-import { DeleteClassDialog, DeleteExamDialog, DeleteStudentsDialog } from './DeleteDialogs';
+import { DeleteClassDialog, DeleteCourseDialog, DeleteExamDialog, DeleteStudentsDialog } from './DeleteDialogs';
 import { FullKeyDialog } from './FullKeyDialog';
 import { NewExamDialog } from './NewExamDialog';
 import { ChangePasswordDialog, DecryptDialog, EncryptDialog, LocationDialog } from './StorageDialogs';
@@ -13,8 +14,10 @@ export function DialogHost(): React.JSX.Element | null {
   switch (d.kind) {
     case 'newClass':
       return <ClassDialog mode="create" onClose={close} />;
+    case 'newCourse':
+      return <CourseDialog mode="create" classId={d.classId} onClose={close} />;
     case 'newExam':
-      return <NewExamDialog classId={d.classId} categoryId={d.categoryId ?? null} onClose={close} />;
+      return <NewExamDialog courseId={d.courseId} categoryId={d.categoryId ?? null} onClose={close} />;
     case 'corrupt':
       return <CorruptDialog renamedTo={d.renamedTo} onClose={close} />;
     case 'backupExport':
@@ -25,6 +28,8 @@ export function DialogHost(): React.JSX.Element | null {
       return <WipeDialog onClose={close} />;
     case 'deleteClass':
       return <DeleteClassDialog classId={d.classId} onClose={close} />;
+    case 'deleteCourse':
+      return <DeleteCourseDialog courseId={d.courseId} onClose={close} />;
     case 'deleteExam':
       return <DeleteExamDialog examId={d.examId} onClose={close} />;
     case 'deleteStudents':

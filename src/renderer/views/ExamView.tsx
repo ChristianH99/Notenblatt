@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useId, useMemo } from 'react';
 import { buildExamModel } from '@shared/examModel';
 import type { StepQp } from '@shared/grading/units';
 import { EXAM_KINDS } from '@shared/labels';
@@ -10,7 +10,7 @@ import { MarkGrid } from '../grid/MarkGrid';
 import { useEditField } from '../hooks';
 import { ScoreGrid } from '../grid/ScoreGrid';
 import { formatWeight } from '@shared/overview';
-import { examWrite, flash, openExam, refreshTree, save, setSetting, undoRedo, useStore } from '../store';
+import { examWrite, flash, navigate, openExam, refreshTree, save, setSetting, undoRedo, useStore } from '../store';
 import { Chart, KeyFigures, KeyTable } from './keyTables';
 import e from './exam.module.css';
 
@@ -50,17 +50,11 @@ function MetaText({
 
 function MetaBar({ exam }: { exam: ExamData }): React.JSX.Element {
   const ex = exam.exam;
-  const categories = useStore((s) => s.tree.find((c) => c.id === ex.classId)?.categories ?? []);
+  const categories = useStore((s) => s.tree.flatMap((c) => c.courses).find((k) => k.id === ex.courseId)?.categories ?? []);
   const kindsId = useId();
-  const subjId = useId();
-  const [subjects, setSubjects] = useState<string[]>([]);
-  useEffect(() => {
-    void call('exams.subjects').then(setSubjects);
-  }, []);
   const patch = async (p: ExamPatch): Promise<void> => {
     const d = await examWrite(call('exams.update', { id: ex.id, patch: p }));
-    if (d && (p.kind !== undefined || p.number !== undefined || p.subject !== undefined || p.examDate !== undefined || p.categoryId !== undefined))
-      await refreshTree();
+    if (d && (p.kind !== undefined || p.number !== undefined || p.examDate !== undefined || p.categoryId !== undefined)) await refreshTree();
   };
   return (
     <div className={e.meta} role="group" aria-label="Angaben zur Prüfung">
@@ -71,12 +65,6 @@ function MetaBar({ exam }: { exam: ExamData }): React.JSX.Element {
         ))}
       </datalist>
       <MetaText label="Nr." value={ex.number} width={48} onCommit={(v) => void patch({ number: v })} />
-      <MetaText label="Fach" value={ex.subject} width={120} list={subjId} onCommit={(v) => void patch({ subject: v })} validate={(v) => (v ? null : 'Das Fach darf nicht leer sein.')} />
-      <datalist id={subjId}>
-        {subjects.map((k) => (
-          <option key={k} value={k} />
-        ))}
-      </datalist>
       <MetaText
         label="Datum"
         value={formatDateDe(ex.examDate)}
@@ -245,8 +233,8 @@ export function ExamView(): React.JSX.Element | null {
       <div className={e.body}>
         {exam.students.length === 0 ? (
           <div className={e.empty} style={{ flex: 1 }}>
-            Diese Klasse hat noch keine Schüler/innen.{' '}
-            <Button onClick={() => useStore.setState({ route: { view: 'class', classId: exam.exam.classId }, exam: null })}>Namen eintragen</Button>
+            Dieses Fach hat noch keine Schüler/innen.{' '}
+            <Button onClick={() => navigate({ view: 'course', courseId: exam.exam.courseId, tab: 'exams' })}>Schüler/innen wählen</Button>
           </div>
         ) : exam.exam.entryMode === 'grade' ? (
           <MarkGrid exam={exam} />

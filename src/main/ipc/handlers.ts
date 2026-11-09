@@ -108,9 +108,22 @@ export function createImpl(ctx: HandlerContext): Impl {
       await scrubClipboard(names);
       log('info', 'CLASS_DELETED', { id });
     },
-    'classes.overview': ({ id }) => repo().overview(id),
-    'classes.updateGrading': ({ id, gradingSystem, finalRounding, finalDigits }) => repo().updateClassGrading(id, { gradingSystem, finalRounding, finalDigits }),
-    'categories.add': ({ classId, name, weightC, defaultMode }) => repo().addCategory(classId, { name, weightC, defaultMode }),
+    'courses.create': ({ classId, subject }) => repo().createCourse(classId, subject),
+    'courses.rename': ({ id, subject }) => repo().renameCourse(id, subject),
+    'courses.deletionInfo': ({ id }) => repo().courseDeletionInfo(id),
+    'courses.delete': ({ id }) => {
+      repo().deleteCourse(id);
+      repo().secureCleanup();
+      log('info', 'COURSE_DELETED', { id });
+    },
+    'courses.setMember': ({ id, studentId, member }) => {
+      repo().setCourseMember(id, studentId, member);
+      if (!member) repo().secureCleanup(false);
+    },
+    'courses.subjects': () => repo().subjects(),
+    'courses.overview': ({ id }) => repo().overview(id),
+    'courses.updateGrading': ({ id, gradingSystem, finalRounding, finalDigits }) => repo().updateCourseGrading(id, { gradingSystem, finalRounding, finalDigits }),
+    'categories.add': ({ courseId, name, weightC, defaultMode }) => repo().addCategory(courseId, { name, weightC, defaultMode }),
     'categories.update': ({ id, name, weightC, defaultMode }) => repo().updateCategory(id, { name, weightC, defaultMode }),
     'categories.move': ({ id, position }) => repo().moveCategory(id, position),
     'categories.delete': ({ id }) => repo().deleteCategory(id),
@@ -122,9 +135,9 @@ export function createImpl(ctx: HandlerContext): Impl {
       repo().setTotals(examId, changes);
       return examData(examId);
     },
-    'output.overviewCsv': async ({ classId }) => {
-      const d = repo().overview(classId);
-      const safe = clean(d.schoolClass.name);
+    'output.overviewCsv': async ({ courseId }) => {
+      const d = repo().overview(courseId);
+      const safe = [clean(d.schoolClass.name), clean(d.course.subject)].filter((x) => x !== '').join('_');
       const file = await saveDialog(`Notenuebersicht_${safe}_${d.schoolClass.schoolYear.replace('/', '-')}.csv`, [{ name: 'CSV (Excel)', extensions: ['csv'] }]);
       if (!file) return null;
       fs.writeFileSync(file, overviewCsv(d), 'utf8');
@@ -172,7 +185,6 @@ export function createImpl(ctx: HandlerContext): Impl {
       repo().secureCleanup();
       log('info', 'EXAM_DELETED', { id });
     },
-    'exams.subjects': () => repo().subjects(),
     'exams.all': () => repo().allExams(),
     'tasks.add': ({ examId, position }) => {
       const taskId = repo().addTask(examId, position);
@@ -276,11 +288,12 @@ const NO_PERSIST = new Set<string>([
   'settings.get',
   'classes.tree',
   'classes.deletionInfo',
-  'classes.overview',
+  'courses.deletionInfo',
+  'courses.subjects',
+  'courses.overview',
   'students.list',
   'students.deletionInfo',
   'exams.get',
-  'exams.subjects',
   'exams.all',
   'tasks.snapshot',
   'output.print',

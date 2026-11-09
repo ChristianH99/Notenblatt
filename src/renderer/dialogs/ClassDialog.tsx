@@ -55,7 +55,12 @@ export function ClassDialog({ mode, source, onClose }: { mode: 'create' | 'renam
         </>
       }
     >
-      {mode === 'copy' && <p>Die Namen aller Schüler/innen werden in eine neue Klasse übernommen. Prüfungen werden nicht kopiert.</p>}
+      {mode === 'copy' && (
+        <p>
+          Die Namen aller Schüler/innen und die Fächer (mit Teilnehmer/innen, Gewichtung und Notensystem) werden in eine neue Klasse übernommen. Prüfungen werden
+          nicht kopiert.
+        </p>
+      )}
       <Field label="Klasse" htmlFor="cls-name" error={nameErr}>
         <TextInput id="cls-name" autoFocus value={name} placeholder="z. B. F-A11a" onChange={(e) => setName(e.target.value)} invalid={!!nameErr} />
       </Field>

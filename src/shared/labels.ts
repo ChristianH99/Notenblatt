@@ -21,6 +21,11 @@ export function examTitle(e: ExamLike): string {
   return [head, e.subject, formatDateDe(e.examDate)].filter((p) => p.trim() !== '').join(' · ');
 }
 
+/** "Kurzarbeit 2 · 19.03.2025" – without the subject, for lists inside a course. */
+export function examShortTitle(e: Omit<ExamLike, 'subject'>): string {
+  return examTitle({ ...e, subject: '' });
+}
+
 /** "2. Kurzarbeit" (as in the Excel header). */
 export function examHeading(e: ExamLike): string {
   const nr = e.number.trim();

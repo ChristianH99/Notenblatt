@@ -13,7 +13,11 @@ export function HelpView(): React.JSX.Element {
         <h2>Ablauf</h2>
         <ol>
           <li>Klasse anlegen und Namen einfügen (eine Zeile pro Schüler/in: „Nachname, Vorname“, „Nachname⇥Vorname“ aus Excel/ASV oder „Nachname Vorname“).</li>
-          <li>Prüfung anlegen: Art, Fach, Datum, Bewertung und Anzahl der Aufgaben wählen.</li>
+          <li>
+            Fach anlegen: In der Klasse jedes Fach anlegen, das Sie dort unterrichten (z. B. „Mathematik“ und „Physik“). Alle Schüler/innen der Klasse nehmen
+            zunächst teil; unter „Prüfungen und Schüler/innen“ können Sie Einzelne abwählen, z. B. bei Wahlfächern.
+          </li>
+          <li>Prüfung anlegen: Fach, Art, Datum, Bewertung und Anzahl der Aufgaben wählen.</li>
           <li>In der Tabelle zuerst die Zeile „max. Punkte“ ausfüllen, dann die erreichten Punkte eintragen. Summe, Note und Auswertung werden sofort berechnet.</li>
         </ol>
         <p>Alle Eingaben werden sofort gespeichert. Es gibt keine Schaltfläche „Speichern“.</p>
@@ -47,22 +51,23 @@ export function HelpView(): React.JSX.Element {
 
         <h2>Mündliche Noten, Kategorien und Gesamtdurchschnitt</h2>
         <p>
-          Jede Prüfung gehört zu einer <b>Kategorie</b> der Klasse, z. B. „Schriftlich“ oder „Mündlich“. Jede Kategorie hat ein <b>Gewicht</b>, z. B. 3 : 1. Prüfungen
+          Noten werden immer <b>je Fach</b> berechnet: Prüfungen verschiedener Fächer einer Klasse werden nie miteinander verrechnet. Jede Prüfung gehört zu
+          einer <b>Kategorie</b> ihres Fachs, z. B. „Schriftlich“ oder „Mündlich“. Jede Kategorie hat ein <b>Gewicht</b>, z. B. 3 : 1. Prüfungen
           können mit Punkten je Aufgabe bewertet werden oder als „Nur Note“ (z. B. Abfragen, Referate): Dann tragen Sie die Note direkt ein.
         </p>
         <p>
-          Die <b>Notenübersicht</b> der Klasse zeigt alle Noten jeder Schülerin bzw. jedes Schülers, den Durchschnitt je Kategorie, den gewichteten
+          Die <b>Notenübersicht</b> des Fachs zeigt alle Noten jeder Schülerin bzw. jedes Schülers, den Durchschnitt je Kategorie, den gewichteten
           Gesamtdurchschnitt und die Endnote. Jede Prüfung zählt mit dem Gewicht ihrer Kategorie: Beispiel schriftlich 15 NP (×3), mündlich 9 und 13 NP (je ×1)
           → (3 · 15 + 9 + 13) / 5 = 13,40. Durchschnitte werden auf zwei Nachkommastellen abgeschnitten angezeigt.
         </p>
         <p>
-          Die <b>Endnote</b> wird aus dem exakten Durchschnitt gerundet – je Klasse wählbar: kaufmännisch (ab x,5 zur höheren Zahl) oder bei genau x,5 zugunsten
+          Die <b>Endnote</b> wird aus dem exakten Durchschnitt gerundet – je Fach wählbar: kaufmännisch (ab x,5 zur höheren Zahl) oder bei genau x,5 zugunsten
           der Schülerin bzw. des Schülers (bei Noten 1–6 also 2,5 → 2), wahlweise auf ganze Noten oder eine Nachkommastelle. Bei Notenpunkten wird x,5 immer
           aufgerundet.
         </p>
         <p>
-          Notensystem (Notenpunkte oder Noten 1–6), Rundung, Gewichte und Kategorien legen Sie je Klasse unter „Gewichtung“ fest; alle Prüfungen der Klasse
-          verwenden dieses Notensystem. Die Vorlage in den Einstellungen gilt nur für neu angelegte Klassen – bereits bestehende Klassen ändern sich dadurch nicht.
+          Notensystem (Notenpunkte oder Noten 1–6), Rundung, Gewichte und Kategorien legen Sie je Fach unter „Gewichtung“ fest; alle Prüfungen des Fachs
+          verwenden dieses Notensystem. Die Vorlage in den Einstellungen gilt nur für neu angelegte Fächer – bereits bestehende Fächer ändern sich dadurch nicht.
         </p>
         <p>
           <b>Nur die Gesamtpunktzahl bekannt?</b> Tragen Sie die Punkte direkt in die Zelle „Summe“ ein. Die Aufgabenzellen dieser Zeile werden dann grau und
@@ -96,7 +101,7 @@ export function HelpView(): React.JSX.Element {
           Daten verlassen das Gerät nur, wenn Sie selbst exportieren (PDF, CSV oder Datensicherung).
         </p>
         <p>
-          Die Daten liegen in einer Datei im Benutzerprofil (Einstellungen → Speicherort). Gelöschte Schüler/innen, Klassen und Prüfungen werden auch physisch aus der
+          Die Daten liegen in einer Datei im Benutzerprofil (Einstellungen → Speicherort). Gelöschte Schüler/innen, Klassen, Fächer und Prüfungen werden auch physisch aus der
           Datei entfernt. Datensicherungen sind immer mit Ihrem Passwort verschlüsselt (AES-256). Bewahren Sie das Passwort sicher auf – ohne Passwort ist keine
           Wiederherstellung möglich.
         </p>

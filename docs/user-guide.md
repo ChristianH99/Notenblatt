@@ -13,19 +13,24 @@ For installation see the [README](../README.md#installation).
    - `Müller Anna`
 
    If first and last names are swapped, tick "Spalten tauschen".
-3. **Create an exam** – choose the kind (e.g. Kurzarbeit), number, subject, date, grading and number of tasks. Alternatively use "Struktur übernehmen von…" to copy the tasks and max points of another exam (e.g. a parallel class).
-4. **Enter max points** – fill in the green "max. Punkte" row of the grid. You can overwrite the task labels in the row above (e.g. `3.1`).
-5. **Enter points** – type a number and press **Enter**: the cursor moves down to the next student. This way you grade one task for the whole class in one go.
+3. **Add a subject** – in the class, click "Neues Fach" and enter the subject you teach there (e.g. Mathematik). Add one subject for each subject you teach in this class. All students of the class take part at first; under "Prüfungen und Schüler/innen" you can untick students who do not take the subject (e.g. elective subjects or split groups).
+4. **Create an exam** – choose the class and subject, the kind (e.g. Kurzarbeit), number, date and number of tasks. Alternatively use "Struktur übernehmen von…" to copy the tasks and max points of another exam (e.g. a parallel class).
+5. **Enter max points** – fill in the green "max. Punkte" row of the grid. You can overwrite the task labels in the row above (e.g. `3.1`).
+6. **Enter points** – type a number and press **Enter**: the cursor moves down to the next student. This way you grade one task for the whole class in one go.
 
 There is no "Save" button – every entry is saved immediately, and the status bar shows "Gespeichert".
 
 ## Oral marks and the overall average
 
-1. In the class, open the **"Gewichtung"** tab to check categories and weights, e.g. "Schriftlich ×3" and "Mündlich ×1". You can rename categories, add new ones (e.g. "Referat") and change the weights.
-2. To enter an oral mark, click **"Note „Mündlich“ eintragen"** in the **"Notenübersicht"** (or create a new exam with entry mode "Nur Note"). Then type the marks directly – as Notenpunkte (0–15) or grades (1,0–6,0), depending on the class's grading system.
-3. The **"Notenübersicht"** shows all grades of the class, the average per category, the weighted **overall average** and the **final mark** of every student. Every exam counts with the weight of its category. "CSV" exports the overview for Excel.
+Grades are always calculated **per subject**: exams of different subjects of one class are never averaged together, and each subject has its own weighting.
 
-The **grading system** (Notenpunkte or grades 1–6), the **rounding of the final mark** (half up, or at exactly x,5 in the student's favour; for grades 1–6 to whole grades or one decimal) and the **weights** are set **per class** (class → "Gewichtung"). All exams of a class use its grading system. Under "Vorlage für neue Klassen" in the settings you define what new classes start with; existing classes are not affected.
+1. In the subject, open the **"Gewichtung"** tab to check categories and weights, e.g. "Schriftlich ×3" and "Mündlich ×1". You can rename categories, add new ones (e.g. "Referat") and change the weights.
+2. To enter an oral mark, click **"Note „Mündlich“ eintragen"** in the **"Notenübersicht"** (or create a new exam with entry mode "Nur Note"). Then type the marks directly – as Notenpunkte (0–15) or grades (1,0–6,0), depending on the subject's grading system.
+3. The **"Notenübersicht"** of the subject shows all its grades, the average per category, the weighted **overall average** and the **final mark** of every student. Every exam counts with the weight of its category. "CSV" exports the overview for Excel.
+
+The **grading system** (Notenpunkte or grades 1–6), the **rounding of the final mark** (half up, or at exactly x,5 in the student's favour; for grades 1–6 to whole grades or one decimal) and the **weights** are set **per subject** (subject → "Gewichtung"). All exams of a subject use its grading system. Under "Vorlage für neue Fächer" in the settings you define what new subjects start with; existing subjects are not affected.
+
+**Updating from an earlier version:** the subject used to be a field of each exam, and all exams of a class were averaged together. When you first start the new version, every class gets one subject for each subject name its exams used (upper/lower case is ignored), with the class's previous weighting, grading system and rounding. A class without exams gets no subject; add its subjects yourself.
 
 **Only the total known?** Type the points directly into the "Summe" cell. The task cells of that row turn grey and are locked until you clear the total again (Del).
 
@@ -53,7 +58,7 @@ The in-app **"Hilfe"** page explains both grading formulas with examples and lis
 
 - Notenblatt makes **no network connections**: no updates, no telemetry, no error reports. The app blocks all network access internally.
 - By default the data lives in your user profile (`%APPDATA%\Notenblatt`), or in a folder of your choice (settings → "Ordner öffnen").
-- **Deleting is final:** when you delete a student, a class or an exam, the data is also physically removed from the file.
+- **Deleting is final:** when you delete a student, a class, a subject or an exam, the data is also physically removed from the file.
 - **"Alle Daten löschen…"** (settings) removes all classes, grades and settings from this device.
 - **Retention period:** Notenblatt points out classes from school years that ended more than 12 months ago (configurable: 6/12/24 months or off).
 - **Backup** (settings → "Datensicherung…") creates a `.notenblatt` file that is **always encrypted with your password** (AES-256). It cannot be restored without the password. Keep the file safe – it contains personal data.

@@ -14,10 +14,10 @@ export type RoundingRule = 'none' | 'half_up' | 'half_favor';
 /** Final mark precision for grades 1–6: 0 = whole grade, 1 = one decimal. NP are always whole. */
 export type RoundingDigits = 0 | 1;
 
-/** A weighting category of a class, e.g. "Schriftlich" x3, "Mündlich" x1. */
+/** A weighting category of a course, e.g. "Schriftlich" x3, "Mündlich" x1. */
 export interface GradeCategory {
   id: number;
-  classId: number;
+  courseId: number;
   name: string;
   /** Weight in hundredths (300 = 3). */
   weightC: number;
@@ -25,18 +25,31 @@ export interface GradeCategory {
   position: number;
 }
 
-/** Template entry for categories of new classes (stored in settings). */
+/** Template entry for categories of new courses (stored in settings). */
 export interface CategoryTemplate {
   name: string;
   weightC: number;
   defaultMode: EntryMode;
 }
 
+/** A class holds the students. Marks are given per course (subject), never per class. */
 export interface SchoolClass {
   id: number;
   name: string;
   schoolYear: string;
-  /** Grading system of the class; all exams of the class use it. */
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * A subject taught in a class ("10a · Mathematik"): its members (a subset of the class),
+ * exams, weighting categories, grading system and final-mark rounding.
+ */
+export interface Course {
+  id: number;
+  classId: number;
+  subject: string;
+  /** Grading system of the course; all exams of the course use it. */
   gradingSystem: Scheme;
   finalRounding: RoundingRule;
   finalDigits: RoundingDigits;
@@ -53,9 +66,12 @@ export interface Student {
 
 export interface Exam {
   id: number;
+  courseId: number;
+  /** Class of the course (read-only, from the course). */
   classId: number;
   kind: string;
   number: string;
+  /** Subject of the course (read-only, from the course). */
   subject: string;
   /** ISO date YYYY-MM-DD */
   examDate: string;
@@ -90,6 +106,7 @@ export interface ScoreEntry {
 export interface ExamData {
   exam: Exam;
   schoolClass: SchoolClass;
+  course: Course;
   tasks: Task[];
   students: ExamStudent[];
   scores: ScoreEntry[];
@@ -119,17 +136,19 @@ export interface MarkChange {
   value: number | null;
 }
 
-/** Everything needed for the class grade overview. */
+/** Everything needed for the grade overview of one course. */
 export interface OverviewData {
   schoolClass: SchoolClass;
+  course: Course;
   categories: GradeCategory[];
+  /** Members of the course. */
   students: Student[];
   exams: ExamData[];
 }
 
 export interface ExamSummary {
   id: number;
-  classId: number;
+  courseId: number;
   kind: string;
   number: string;
   subject: string;
@@ -139,15 +158,29 @@ export interface ExamSummary {
   categoryId: number | null;
 }
 
-export interface ClassTreeItem extends SchoolClass {
-  studentCount: number;
+export interface CourseTreeItem extends Course {
+  /** Ids of the students of the class who take this course. */
+  memberIds: number[];
   exams: ExamSummary[];
   categories: GradeCategory[];
+}
+
+export interface ClassTreeItem extends SchoolClass {
+  studentCount: number;
+  courses: CourseTreeItem[];
 }
 
 export interface ClassDeletionInfo {
   name: string;
   students: number;
+  courses: number;
+  exams: number;
+  scores: number;
+}
+
+export interface CourseDeletionInfo {
+  subject: string;
+  className: string;
   exams: number;
   scores: number;
 }
@@ -166,7 +199,7 @@ export interface Settings {
   retentionMonths: '6' | '12' | '24' | 'off';
   showGradeEquivalent: boolean;
   lastExamId: number | null;
-  /** Defaults for NEW classes only. */
+  /** Defaults for NEW courses only. */
   defaultGradingSystem: Scheme;
   categoryTemplate: CategoryTemplate[];
   defaultRounding: RoundingRule;
@@ -217,10 +250,9 @@ export interface BackupCounts {
 export type PrintMode = 'exam' | 'spiegel' | 'key';
 
 export interface NewExamInput {
-  classId: number;
+  courseId: number;
   kind: string;
   number: string;
-  subject: string;
   examDate: string;
   teacher: string;
   stepQp: StepQp;
@@ -233,7 +265,6 @@ export interface NewExamInput {
 export interface ExamPatch {
   kind?: string;
   number?: string;
-  subject?: string;
   examDate?: string;
   teacher?: string;
   stepQp?: StepQp;

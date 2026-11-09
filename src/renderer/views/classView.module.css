@@ -130,3 +130,6 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.outRow td {
+  color: var(--c-text-2);
+}

@@ -9,30 +9,30 @@ import type { EntryMode } from '@shared/types';
 import { Button, Dialog, Field, RadioGroup, Select, TextInput } from '../components/ui';
 import { openExam, refreshTree, save, useStore } from '../store';
 
-export function NewExamDialog({ classId, categoryId, onClose }: { classId: number | null; categoryId: number | null; onClose: () => void }): React.JSX.Element {
+export function NewExamDialog({ courseId, categoryId, onClose }: { courseId: number | null; categoryId: number | null; onClose: () => void }): React.JSX.Element {
   const tree = useStore((s) => s.tree);
   const settings = useStore((s) => s.settings);
-  const [cls, setCls] = useState<number>(classId ?? tree[0]?.id ?? 0);
-  const clsItem = tree.find((c) => c.id === cls);
-  const firstCat = clsItem?.categories.find((c) => c.id === categoryId) ?? clsItem?.categories[0];
+  const courses = tree.flatMap((c) => c.courses);
+  const [course, setCourse] = useState<number>(courseId ?? courses[0]?.id ?? 0);
+  const courseItem = courses.find((k) => k.id === course);
+  const firstCat = courseItem?.categories.find((c) => c.id === categoryId) ?? courseItem?.categories[0];
   const [cat, setCat] = useState<number | null>(firstCat?.id ?? null);
   const [entry, setEntry] = useState<EntryMode>(firstCat?.defaultMode ?? 'points');
   const [kind, setKind] = useState(firstCat?.defaultMode === 'grade' ? 'Mündliche Note' : 'Schulaufgabe');
   const [number, setNumber] = useState('');
-  const [subject, setSubject] = useState('');
   const [date, setDate] = useState(formatDateDe(todayIso()));
   const [teacher, setTeacher] = useState(settings.teacher);
 
-  const pickClass = (id: number): void => {
-    setCls(id);
-    const c = tree.find((x) => x.id === id);
+  const pickCourse = (id: number): void => {
+    setCourse(id);
+    const c = courses.find((x) => x.id === id);
     const k = c?.categories[0];
     setCat(k?.id ?? null);
     if (k) setEntry(k.defaultMode);
   };
   const pickCategory = (id: number): void => {
     setCat(id);
-    const k = clsItem?.categories.find((x) => x.id === id);
+    const k = courseItem?.categories.find((x) => x.id === id);
     if (k) {
       setEntry(k.defaultMode);
       if (k.defaultMode === 'grade' && kind === 'Schulaufgabe') setKind('Mündliche Note');
@@ -43,14 +43,11 @@ export function NewExamDialog({ classId, categoryId, onClose }: { classId: numbe
   const [mode, setMode] = useState<'count' | 'copy'>('count');
   const [count, setCount] = useState('5');
   const [source, setSource] = useState<number | null>(null);
-  const [subjects, setSubjects] = useState<string[]>([]);
   const [exams, setExams] = useState<ExamPick[]>([]);
   const [tried, setTried] = useState(false);
   const kindsId = useId();
-  const subjId = useId();
 
   useEffect(() => {
-    void call('exams.subjects').then(setSubjects);
     void call('exams.all').then(setExams);
   }, []);
 
@@ -59,7 +56,6 @@ export function NewExamDialog({ classId, categoryId, onClose }: { classId: numbe
   const countOk = /^\d+$/.test(count.trim()) && n >= 1 && n <= 200;
   const errs = {
     kind: tried && !kind.trim() ? 'Bitte die Art angeben.' : undefined,
-    subject: tried && !subject.trim() ? 'Bitte ein Fach angeben.' : undefined,
     date: tried && !iso ? 'Bitte ein Datum im Format TT.MM.JJJJ eingeben.' : undefined,
     count: tried && entry === 'points' && mode === 'count' && !countOk ? 'Bitte eine Zahl von 1 bis 200 eingeben.' : undefined,
     source: tried && entry === 'points' && mode === 'copy' && source === null ? 'Bitte eine Prüfung auswählen.' : undefined,
@@ -67,15 +63,14 @@ export function NewExamDialog({ classId, categoryId, onClose }: { classId: numbe
 
   const submit = async (): Promise<void> => {
     setTried(true);
-    if (!kind.trim() || !subject.trim() || !iso || !cls) return;
+    if (!kind.trim() || !iso || !course) return;
     if (entry === 'points' && mode === 'count' && !countOk) return;
     if (entry === 'points' && mode === 'copy' && source === null) return;
     const id = await save(
       call('exams.create', {
-        classId: cls,
+        courseId: course,
         kind,
         number,
-        subject,
         examDate: iso,
         teacher,
         stepQp: step,
@@ -106,13 +101,19 @@ export function NewExamDialog({ classId, categoryId, onClose }: { classId: numbe
       }
     >
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Field label="Klasse" htmlFor="ex-class">
-          <Select id="ex-class" value={cls} onChange={(e) => pickClass(Number(e.target.value))}>
-            {tree.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} ({c.schoolYear})
-              </option>
-            ))}
+        <Field label="Klasse und Fach" htmlFor="ex-course">
+          <Select id="ex-course" value={course} onChange={(e) => pickCourse(Number(e.target.value))}>
+            {tree
+              .filter((c) => c.courses.length > 0)
+              .map((c) => (
+                <optgroup key={c.id} label={`${c.name} (${c.schoolYear})`}>
+                  {c.courses.map((k) => (
+                    <option key={k.id} value={k.id}>
+                      {c.name} · {k.subject}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
           </Select>
         </Field>
         <Field label="Datum" htmlFor="ex-date" error={errs.date}>
@@ -129,20 +130,12 @@ export function NewExamDialog({ classId, categoryId, onClose }: { classId: numbe
         <Field label="Nr." htmlFor="ex-nr">
           <TextInput id="ex-nr" value={number} onChange={(e) => setNumber(e.target.value)} placeholder="z. B. 2." />
         </Field>
-        <Field label="Fach" htmlFor="ex-subject" error={errs.subject}>
-          <TextInput id="ex-subject" list={subjId} value={subject} onChange={(e) => setSubject(e.target.value)} invalid={!!errs.subject} />
-          <datalist id={subjId}>
-            {subjects.map((k) => (
-              <option key={k} value={k} />
-            ))}
-          </datalist>
-        </Field>
         <Field label="Lehrkraft" htmlFor="ex-teacher">
           <TextInput id="ex-teacher" value={teacher} onChange={(e) => setTeacher(e.target.value)} />
         </Field>
         <Field label="Kategorie (Gewichtung)" htmlFor="ex-cat">
           <Select id="ex-cat" value={cat ?? ''} onChange={(e) => pickCategory(Number(e.target.value))}>
-            {clsItem?.categories.map((c) => (
+            {courseItem?.categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name} (×{formatWeight(c.weightC)})
               </option>
@@ -161,7 +154,7 @@ export function NewExamDialog({ classId, categoryId, onClose }: { classId: numbe
         ]}
       />
       <p style={{ fontSize: 13, color: 'var(--c-text-2)', margin: 0 }}>
-        Bewertung: {clsItem?.gradingSystem === 'LIN6' ? 'Noten 1,0–6,0 (linear)' : 'Notenpunkte 0–15'} – wie in der Klasse festgelegt (Klasse → Gewichtung).
+        Bewertung: {courseItem?.gradingSystem === 'LIN6' ? 'Noten 1,0–6,0 (linear)' : 'Notenpunkte 0–15'} – wie im Fach festgelegt (Fach → Gewichtung).
       </p>
       {entry === 'points' && (
       <>
