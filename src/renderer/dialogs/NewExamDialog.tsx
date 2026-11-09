@@ -153,9 +153,6 @@ export function NewExamDialog({ courseId, categoryId, onClose }: { courseId: num
           { value: 'grade', label: 'Nur Note (z. B. mündlich)' },
         ]}
       />
-      <p style={{ fontSize: 13, color: 'var(--c-text-2)', margin: 0 }}>
-        Bewertung: {courseItem?.gradingSystem === 'LIN6' ? 'Noten 1,0–6,0 (linear)' : 'Notenpunkte 0–15'} – wie im Fach festgelegt (Fach → Gewichtung).
-      </p>
       {entry === 'points' && (
       <>
       <RadioGroup
