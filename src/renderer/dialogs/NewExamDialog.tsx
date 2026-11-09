@@ -119,6 +119,15 @@ export function NewExamDialog({ courseId, categoryId, onClose }: { courseId: num
         <Field label="Datum" htmlFor="ex-date" error={errs.date}>
           <TextInput id="ex-date" value={date} onChange={(e) => setDate(e.target.value)} placeholder="TT.MM.JJJJ" invalid={!!errs.date} />
         </Field>
+        <Field label="Kategorie (Gewichtung)" htmlFor="ex-cat">
+          <Select id="ex-cat" value={cat ?? ''} onChange={(e) => pickCategory(Number(e.target.value))}>
+            {courseItem?.categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} (×{formatWeight(c.weightC)})
+              </option>
+            ))}
+          </Select>
+        </Field>
         <Field label="Art" htmlFor="ex-kind" error={errs.kind}>
           <TextInput id="ex-kind" list={kindsId} value={kind} onChange={(e) => setKind(e.target.value)} invalid={!!errs.kind} autoFocus />
           <datalist id={kindsId}>
@@ -132,15 +141,6 @@ export function NewExamDialog({ courseId, categoryId, onClose }: { courseId: num
         </Field>
         <Field label="Lehrkraft" htmlFor="ex-teacher">
           <TextInput id="ex-teacher" value={teacher} onChange={(e) => setTeacher(e.target.value)} />
-        </Field>
-        <Field label="Kategorie (Gewichtung)" htmlFor="ex-cat">
-          <Select id="ex-cat" value={cat ?? ''} onChange={(e) => pickCategory(Number(e.target.value))}>
-            {courseItem?.categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} (×{formatWeight(c.weightC)})
-              </option>
-            ))}
-          </Select>
         </Field>
       </div>
       <RadioGroup
