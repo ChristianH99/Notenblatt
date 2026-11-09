@@ -1,6 +1,7 @@
 /**
  * Shown instead of the app while the database is not open:
- * password required, folder unreachable / no database there, or in use on another device.
+ * password required, folder unreachable / no database there, in use on another device,
+ * or not usable by this program version.
  */
 import { useState } from 'react';
 import { call } from '../api';
@@ -120,6 +121,27 @@ export function StartupGate(): React.JSX.Element | null {
               Hier neue Datenbank anlegen
             </Button>
           )}
+        </div>
+        {otherActions}
+      </div>
+    );
+  } else if (st.state === 'incompatible') {
+    body = (
+      <div style={{ maxWidth: 560 }}>
+        <h1 className={s.pageTitle}>{st.reason === 'tooNew' ? 'Neuere Notenblatt-Version erforderlich' : 'Datenbank konnte nicht aktualisiert werden'}</h1>
+        <p>
+          {st.reason === 'tooNew'
+            ? 'Diese Datenbank wurde mit einer neueren Version von Notenblatt bearbeitet. Bitte installieren Sie die aktuelle Version von Notenblatt.'
+            : 'Die Datenbank konnte nicht für diese Version von Notenblatt angepasst werden.'}
+        </p>
+        <p className={s.muted} style={{ margin: '8px 0 16px' }}>
+          Die Datenbank wurde nicht verändert. Ihre Daten sind vollständig erhalten.
+        </p>
+        {error && <Notice error>{error}</Notice>}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button variant="primary" onClick={() => void run(call('storage.retry'))} disabled={busy}>
+            Erneut versuchen
+          </Button>
         </div>
         {otherActions}
       </div>

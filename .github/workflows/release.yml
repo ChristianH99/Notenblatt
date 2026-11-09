@@ -1,0 +1,54 @@
+name: Release
+
+# Builds the Windows installers whenever a GitHub release is published
+# (directly or from a draft) and attaches them to that release.
+# The release tag sets the app version: tag "v0.1.0" builds Notenblatt 0.1.0.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    env:
+      TAG: ${{ github.event.release.tag_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Derive version from the release tag
+        run: |
+          VERSION="${TAG#v}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Release tag '$TAG' is not a version like v0.1.0"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set package version
+        run: npm version "$VERSION" --no-git-tag-version --allow-same-version
+
+      - name: Unit and integration tests
+        run: npm test
+
+      - name: Build installers (x64, arm64)
+        run: npm run dist
+
+      - name: Attach installers to the release
+        run: gh release upload "$TAG" dist/Notenblatt-Setup-*-x64.exe dist/Notenblatt-Setup-*-arm64.exe --clobber

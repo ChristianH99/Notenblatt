@@ -1,10 +1,11 @@
 /**
- * Data safety flows through the UI: corrupted DB on start, backup export/import
- * (incl. wrong password), "Alle Daten löschen".
+ * Data safety flows through the UI: corrupted DB on start, database from a newer version,
+ * backup export/import (incl. wrong password), "Alle Daten löschen".
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
+import Database from 'better-sqlite3';
 import { expectFlash, invoke, launch, mockSaveDialog, netLog, tempDir } from './helpers';
 
 test('corrupted DB on start: dialog, renamed file, never crashes', async () => {
@@ -20,6 +21,26 @@ test('corrupted DB on start: dialog, renamed file, never crashes', async () => {
   await expect(page.getByRole('heading', { name: 'Erste Schritte' })).toBeVisible();
   expect(await netLog(app)).toEqual([]);
   await app.close();
+});
+
+test('database from a newer version: explained, file untouched, not treated as damaged', async () => {
+  const dir = tempDir();
+  const file = path.join(dir, 'notenblatt.db');
+  const db = new Database(file);
+  db.exec("CREATE TABLE t (x TEXT); INSERT INTO t VALUES ('Zqxwvy')");
+  db.pragma('user_version = 999');
+  db.close();
+  const before = fs.readFileSync(file);
+  const { app, page } = await launch(dir);
+  await expect(page.getByRole('heading', { name: 'Neuere Notenblatt-Version erforderlich' })).toBeVisible();
+  await expect(page.getByText('Die Datenbank wurde nicht verändert.')).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Datenbank beschädigt' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Erneut versuchen' }).click();
+  await expect(page.getByRole('heading', { name: 'Neuere Notenblatt-Version erforderlich' })).toBeVisible();
+  expect(await netLog(app)).toEqual([]);
+  await app.close();
+  expect(fs.readdirSync(dir).filter((f) => f.includes('defekt'))).toEqual([]);
+  expect(fs.readFileSync(file).equals(before)).toBe(true);
 });
 
 test('backup export → wipe → import, wrong password changes nothing', async () => {

@@ -338,3 +338,38 @@
   background: var(--c-hover);
   color: var(--c-text);
 }
+
+/* Settings → Über Notenblatt: license texts */
+.licenseList {
+  border-top: 1px solid var(--c-grid);
+  margin-top: var(--sp-8);
+}
+.licenseItem {
+  border-bottom: 1px solid var(--c-grid);
+}
+.licenseItem > summary {
+  display: flex;
+  gap: var(--sp-8);
+  align-items: baseline;
+  min-height: var(--hit);
+  padding: var(--sp-4) 0;
+  cursor: pointer;
+}
+.licenseItem > summary:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+.licenseName {
+  font-weight: var(--fw-semibold);
+}
+.licenseText {
+  margin: 0 0 var(--sp-12);
+  padding: var(--sp-8);
+  max-height: 240px;
+  overflow: auto;
+  background: var(--c-window);
+  border: 1px solid var(--c-grid);
+  font: var(--fs-12) / 1.45 Consolas, 'Cascadia Mono', monospace;
+  white-space: pre-wrap;
+  user-select: text;
+}

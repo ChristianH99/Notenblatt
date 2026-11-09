@@ -1,5 +1,7 @@
 # Build "Notenblatt": an offline Windows tool for grading exams
 
+> **Note:** This is the original specification Notenblatt was built from, kept for reference. Later changes are recorded in [decisions.md](decisions.md), which takes precedence where the two differ. File names in §8–§10 refer to the original repository layout: `README.md` is now English with the teacher guide in [user-guide.md](user-guide.md), `DEVELOPMENT.md` became [development.md](development.md) and [architecture.md](architecture.md), `DECISIONS.md` is [decisions.md](decisions.md), `TESTREPORT.md` became [testing.md](testing.md), and installers are built by the release workflow.
+
 You are building a complete, production-ready desktop app for German teachers. It replaces two Excel workbooks that teachers use today to grade exams. Everything you need is in this document. Where it makes a decision, follow it. Where it doesn't cover a detail, choose the simplest option that fits the principles in §1 and write it down in `DECISIONS.md`.
 
 The app UI is **German only**. This document is in English, and German UI strings are given verbatim in quotes.

@@ -12,10 +12,12 @@ const PARTITION = 'notenblatt'; // no "persist:" prefix → in-memory session, n
 const MIN_W = 1024;
 const MIN_H = 680;
 const isDev = !app.isPackaged && !!process.env.ELECTRON_RENDERER_URL;
+/** Development/test switches (NOTENBLATT_*) are ignored by the installed app. */
+const devEnv = (name: string): string | undefined => (app.isPackaged ? undefined : process.env[name]);
 
 // ───── data location (must be set before anything touches userData) ─────
 app.setName('Notenblatt');
-const userData = process.env.NOTENBLATT_USER_DATA || path.join(app.getPath('appData'), 'Notenblatt');
+const userData = devEnv('NOTENBLATT_USER_DATA') || path.join(app.getPath('appData'), 'Notenblatt');
 app.setPath('userData', userData);
 app.setPath('sessionData', path.join(userData, 'session'));
 
@@ -72,8 +74,8 @@ if (!app.requestSingleInstanceLock()) {
       title: 'Notenblatt',
       backgroundColor: '#F3F4F6',
       autoHideMenuBar: true,
-      // The packaged exe carries the icon; in development use the PNG from build/.
-      ...(app.isPackaged ? {} : { icon: path.join(__dirname, '../../build/icon.png') }),
+      // The packaged exe carries the icon; in development use the PNG from resources/.
+      ...(app.isPackaged ? {} : { icon: path.join(__dirname, '../../resources/icon.png') }),
       webPreferences: {
         preload: path.join(__dirname, '../preload/index.js'),
         contextIsolation: true,
@@ -82,7 +84,7 @@ if (!app.requestSingleInstanceLock()) {
         webSecurity: true,
         spellcheck: false,
         partition: PARTITION,
-        devTools: isDev || !!process.env.NOTENBLATT_E2E,
+        devTools: isDev || !!devEnv('NOTENBLATT_E2E'),
       },
     });
     win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -122,7 +124,7 @@ if (!app.requestSingleInstanceLock()) {
     mainWindow.once('ready-to-show', () => {
       if (!mainWindow) return;
       if (maximized) mainWindow.maximize();
-      if (!process.env.NOTENBLATT_E2E_HIDDEN) mainWindow.show();
+      if (!devEnv('NOTENBLATT_E2E_HIDDEN')) mainWindow.show();
     });
     mainWindow.on('close', (e) => {
       if (!mainWindow) return;

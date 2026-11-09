@@ -1,5 +1,5 @@
 /**
- * Generates build/icon.png (256 px) and build/icon.ico (16–256 px) without any
+ * Generates resources/icon.png (256 px) and resources/icon.ico (16–256 px) without any
  * dependency: a plain monochrome grid symbol in the accent colour.
  */
 import fs from 'node:fs';
@@ -108,8 +108,8 @@ function ico(sizes) {
   return Buffer.concat([header, dir, ...images]);
 }
 
-const out = path.resolve('build');
+const out = path.resolve('resources');
 fs.mkdirSync(out, { recursive: true });
 fs.writeFileSync(path.join(out, 'icon.png'), png(256));
 fs.writeFileSync(path.join(out, 'icon.ico'), ico([16, 24, 32, 48, 64, 128, 256]));
-console.log('build/icon.png and build/icon.ico written');
+console.log('resources/icon.png and resources/icon.ico written');

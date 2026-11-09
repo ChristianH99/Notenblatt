@@ -4,6 +4,8 @@ import path from 'node:path';
 import { _electron, expect, type ElectronApplication, type Page } from '@playwright/test';
 
 export const ROOT = path.resolve(__dirname, '../..');
+/** Screenshots taken by the E2E tests (gitignored; uploaded as a CI artifact). */
+export const SCREENSHOTS = path.join(ROOT, 'test-results', 'screenshots');
 
 export function tempDir(prefix = 'nb-e2e-'): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));

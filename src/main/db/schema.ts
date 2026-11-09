@@ -146,17 +146,33 @@ export const MIGRATIONS: Migration[] = [
 
 export const SCHEMA_VERSION = MIGRATIONS.length;
 
+/**
+ * The database cannot be used by this program version. Never a sign of corruption:
+ * the file must be left untouched (it may still be fine for another version).
+ */
+export class SchemaError extends Error {
+  constructor(
+    readonly reason: 'tooNew' | 'migrationFailed',
+    options?: { cause?: unknown },
+  ) {
+    super(reason === 'tooNew' ? 'DB_SCHEMA_TOO_NEW' : 'DB_MIGRATION_FAILED', options);
+  }
+}
+
+/** Brings the DB to SCHEMA_VERSION. Each step is one transaction, so a failing step changes nothing. */
 export function migrate(db: Database.Database): void {
   const current = db.pragma('user_version', { simple: true }) as number;
-  if (current > SCHEMA_VERSION) {
-    throw new Error('DB_SCHEMA_TOO_NEW');
-  }
+  if (current > SCHEMA_VERSION) throw new SchemaError('tooNew');
   for (let v = current; v < SCHEMA_VERSION; v++) {
-    db.transaction(() => {
-      const m = MIGRATIONS[v] as Migration;
-      if (typeof m === 'string') db.exec(m);
-      else m(db);
-      db.pragma(`user_version = ${v + 1}`);
-    })();
+    try {
+      db.transaction(() => {
+        const m = MIGRATIONS[v] as Migration;
+        if (typeof m === 'string') db.exec(m);
+        else m(db);
+        db.pragma(`user_version = ${v + 1}`);
+      })();
+    } catch (e) {
+      throw new SchemaError('migrationFailed', { cause: e });
+    }
   }
 }

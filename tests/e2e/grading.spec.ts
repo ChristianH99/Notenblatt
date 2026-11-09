@@ -5,9 +5,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { expectFlash, launch, navClick, netLog, ROOT, tempDir } from './helpers';
+import { expectFlash, launch, navClick, netLog, SCREENSHOTS, tempDir } from './helpers';
 
-const SHOT = (name: string): string => path.join(ROOT, 'docs', 'screenshots', name);
+const SHOT = (name: string): string => path.join(SCREENSHOTS, name);
 
 async function openClassTab(page: Page, cls: string, tab: string): Promise<void> {
   await navClick(page, cls);

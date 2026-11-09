@@ -35,7 +35,7 @@ import { readConfig, writeConfig, type AppConfig } from '../storage/config';
 import { FileLock, InUseError } from '../storage/lock';
 import { dbFiles, openDatabase, openOrRecover, shredFile } from './files';
 import { Repo, UserError } from './repo';
-import { migrate, SCHEMA_VERSION } from './schema';
+import { migrate, SCHEMA_VERSION, SchemaError } from './schema';
 
 export const WAL_NAME = 'notenblatt.db';
 export const SNAP_NAME = 'notenblatt.nbdb';
@@ -193,9 +193,14 @@ export class DbManager {
 
     if (this.isDefaultDir && !exists(this.snapFile)) {
       this.mode = 'wal';
-      const r = openOrRecover(this.walFile);
-      this.attach(r.db);
-      this.corrupt = r.corrupt;
+      try {
+        const r = openOrRecover(this.walFile);
+        this.attach(r.db);
+        this.corrupt = r.corrupt;
+      } catch (e) {
+        if (!(e instanceof SchemaError)) throw e;
+        this.setIncompatible(e);
+      }
       return this.status;
     }
 
@@ -239,10 +244,21 @@ export class DbManager {
     }
     try {
       this.openMemory(buf);
-    } catch {
-      this.recoverCorruptSnapshot();
+    } catch (e) {
+      if (e instanceof SchemaError) this.setIncompatible(e);
+      else this.recoverCorruptSnapshot();
     }
     return this.status;
+  }
+
+  /** The database is left exactly as it is; the lock is released so another (newer) device can use it. */
+  private setIncompatible(e: SchemaError): void {
+    log('warn', 'DB_INCOMPATIBLE', { reason: e.reason });
+    this.km = null;
+    this.awaitingPassword = false;
+    this.stopTimer();
+    this.releaseLock();
+    this.status = { state: 'incompatible', reason: e.reason };
   }
 
   /** Convenience for tests/one-shot use: start() and require "ready". */
@@ -267,9 +283,10 @@ export class DbManager {
     this.awaitingPassword = false;
     try {
       this.openMemory(plain);
-    } catch {
+    } catch (e) {
       this.km = null;
-      throw new UserError('Die Datenbank ist beschädigt.');
+      if (e instanceof SchemaError) this.setIncompatible(e);
+      else throw new UserError('Die Datenbank ist beschädigt.');
     } finally {
       plain.fill(0);
     }

@@ -120,7 +120,7 @@ describe('final mark rounding', () => {
     expect(finalMark('NP15', f(9), 'none', 0)).toBeNull();
     expect(formatFinalMark('NP15', 10, 0)).toBe('10');
   });
-  it('grades 1–6, whole grade: kaufmännisch vs. zugunsten bei x,5', () => {
+  it('grades 1–6, whole grade: half up vs. favouring the student at x,5', () => {
     // values in tenths of a grade: 25 = 2,5
     expect(finalMark('LIN6', f(25), 'half_up', 0)).toBe(30);
     expect(finalMark('LIN6', f(25), 'half_favor', 0)).toBe(20);

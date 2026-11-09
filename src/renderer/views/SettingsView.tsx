@@ -5,11 +5,64 @@ import { ROUNDING_OPTIONS } from './ClassGrading';
 import { Button, Select, TextInput } from '../components/ui';
 import { call } from '../api';
 import { setSetting, useStore } from '../store';
+import * as about from 'virtual:about';
 import s from './shell.module.css';
 
 function SettingText({ id, value, onCommit, placeholder }: { id: string; value: string; onCommit: (v: string) => void; placeholder?: string }): React.JSX.Element {
   const field = useEditField(value, (v) => onCommit(v.trim()));
   return <TextInput id={id} placeholder={placeholder} {...field} />;
+}
+
+/** Version, copyright and all licenses (own and third-party), as required by the MIT and other licenses. */
+function AboutSection(): React.JSX.Element {
+  return (
+    <section className={s.section} aria-labelledby="about-title">
+      <div className={s.sectionHead}>
+        <h2 className={s.sectionTitle} id="about-title">
+          Über Notenblatt
+        </h2>
+      </div>
+      <div className={s.sectionBody}>
+        <div className={s.formGrid}>
+          <span>Version</span>
+          <span data-testid="app-version">{about.version === '0.0.0' ? '0.0.0 (Entwicklungsversion)' : about.version}</span>
+          <span>Urheberrecht</span>
+          <span>{about.copyright}</span>
+          <span>Lizenz</span>
+          <span>MIT-Lizenz</span>
+        </div>
+        <details className={`${s.licenseItem} ${s.licenseList}`}>
+          <summary>
+            <span className={s.licenseName}>Lizenztext von Notenblatt</span>
+          </summary>
+          <pre className={s.licenseText}>{about.licenseText}</pre>
+        </details>
+
+        <h3 className={s.sectionTitle} style={{ marginTop: 24 }}>
+          Verwendete Software von Drittanbietern
+        </h3>
+        <p className={s.muted} style={{ margin: '4px 0 0' }}>
+          Notenblatt enthält die folgenden Komponenten. Ein Klick auf einen Eintrag zeigt den vollständigen Lizenztext.
+        </p>
+        <div className={s.licenseList} data-testid="third-party-licenses">
+          {about.notices.map((n) => (
+            <details key={n.name} className={s.licenseItem}>
+              <summary>
+                <span className={s.licenseName}>{n.name}</span>
+                <span>{n.version}</span>
+                <span className={s.muted}>{n.license}</span>
+              </summary>
+              {n.note && <p style={{ margin: '0 0 8px' }}>{n.note}</p>}
+              <p className={s.muted} style={{ margin: '0 0 8px', userSelect: 'text' }}>
+                Quelle: {n.url}
+              </p>
+              <pre className={s.licenseText}>{n.text}</pre>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
 }
 
 export function SettingsView(): React.JSX.Element {
@@ -156,6 +209,8 @@ export function SettingsView(): React.JSX.Element {
             </div>
           </div>
         </section>
+
+        <AboutSection />
       </div>
     </div>
   );

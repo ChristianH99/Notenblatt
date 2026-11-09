@@ -1,0 +1,7 @@
+# LF line endings in the repository and in every working copy, on every OS and
+# regardless of a contributor's core.autocrlf setting.
+* text=auto eol=lf
+
+# Binary files: never touch their bytes.
+*.png binary
+*.ico binary

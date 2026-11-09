@@ -1,0 +1,29 @@
+version: 2
+
+# Weekly dependency updates. Patch and minor updates arrive as one grouped PR;
+# every major update (Electron in particular) gets its own PR so it can be
+# tested on its own. CI runs the full test suite on each PR.
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Blocked by typescript-eslint (supports TypeScript < 6.1), see docs/decisions.md.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      # Must match the Node version bundled with Electron; bumped together with Electron.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']

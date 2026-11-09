@@ -50,7 +50,7 @@ function Nav({ compact, overlay, onPicked }: { compact: boolean; overlay?: boole
   }
 
   return (
-    <nav className={`${s.nav} ${overlay ? s.navOverlay : ''}`} aria-label="Klassen und Prüfungen" onClickCapture={(e) => (e.target as HTMLElement).closest('button') && onPicked?.()}>
+    <nav className={`${s.nav} ${overlay ? s.navOverlay : ''}`} aria-label="Klassen und Prüfungen" onClick={(e) => (e.target as HTMLElement).closest('button') && onPicked?.()}>
       <div className={s.navActions}>
         <Button icon="people" onClick={() => useStore.setState({ dialog: { kind: 'newClass' } })}>
           Neue Klasse
@@ -255,7 +255,9 @@ export function Shell(): React.JSX.Element {
         {overlay && (
           <>
             <div className={s.scrim} onPointerDown={() => useStore.setState({ navPref: 'auto' })} />
-            <Nav compact={false} overlay onPicked={() => setTimeout(() => useStore.setState({ navPref: 'auto' }), 0)} />
+            {/* Closed when the click bubbles up to the nav, i.e. after the item's own onClick. A timer
+                would be throttled in an unfocused window and could close the overlay much later. */}
+            <Nav compact={false} overlay onPicked={() => useStore.setState({ navPref: 'auto' })} />
           </>
         )}
         <main className={s.main}>

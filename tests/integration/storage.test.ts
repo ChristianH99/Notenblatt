@@ -2,7 +2,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import Database from 'better-sqlite3';
 import { DbManager, SNAP_NAME, WAL_NAME } from '../../src/main/db/manager';
+import { SCHEMA_VERSION } from '../../src/main/db/schema';
+import { DB_MAGIC, openWithPassword, sealWithKey } from '../../src/main/backup/crypto';
 import { UserError } from '../../src/main/db/repo';
 import { readConfig, writeConfig } from '../../src/main/storage/config';
 import { FileLock, InUseError, readLock, STALE_MS } from '../../src/main/storage/lock';
@@ -283,5 +286,95 @@ describe('encryption', () => {
     expect(mgr.start()).toEqual({ state: 'ready' });
     expect(mgr.corrupt?.renamedTo).toMatch(/notenblatt\.nbdb\.defekt-/);
     expect(mgr.repo.isEmpty()).toBe(true);
+  });
+});
+
+describe('database from another program version', () => {
+  const TOO_NEW = SCHEMA_VERSION + 1;
+  const files = (dir: string): string[] => fs.readdirSync(dir).sort();
+  const bytes = (file: string): Buffer => fs.readFileSync(file);
+  const setVersionRaw = (file: string, v: number): void => {
+    const db = new Database(file);
+    db.pragma(`user_version = ${v}`);
+    db.close();
+  };
+
+  it('local database from a newer version: refused, file untouched, not treated as damaged', () => {
+    mgr.start();
+    seed(mgr);
+    mgr.shutdown();
+    const file = path.join(userData, WAL_NAME);
+    setVersionRaw(file, TOO_NEW);
+    const before = bytes(file);
+    const list = files(userData);
+
+    const m2 = new DbManager(userData, opts);
+    expect(m2.start()).toEqual({ state: 'incompatible', reason: 'tooNew' });
+    expect(m2.corrupt).toBeNull();
+    expect(() => m2.repo).toThrow();
+    m2.shutdown(false);
+    mgr = m2;
+    expect(files(userData)).toEqual(list);
+    expect(bytes(file).equals(before)).toBe(true);
+  });
+
+  it('shared database from a newer version: refused, file and lock left for the other device', () => {
+    mgr.start();
+    seed(mgr);
+    mgr.relocate(share);
+    mgr.shutdown();
+    const file = path.join(share, SNAP_NAME);
+    setVersionRaw(file, TOO_NEW);
+    const before = bytes(file);
+
+    const m2 = new DbManager(userData, opts);
+    expect(m2.start()).toEqual({ state: 'incompatible', reason: 'tooNew' });
+    expect(fs.existsSync(`${file}.lock`)).toBe(false);
+    m2.shutdown(false);
+    mgr = m2;
+    expect(files(share)).toEqual([SNAP_NAME]);
+    expect(bytes(file).equals(before)).toBe(true);
+  });
+
+  it('encrypted database from a newer version: refused after unlocking, file untouched', async () => {
+    mgr.start();
+    seed(mgr);
+    await mgr.enableEncryption('geheim-123');
+    mgr.shutdown();
+    // re-seal the snapshot as a newer version would have written it
+    const file = path.join(userData, SNAP_NAME);
+    const { plain, km } = await openWithPassword(bytes(file), 'geheim-123', DB_MAGIC);
+    const db = new Database(plain);
+    db.pragma(`user_version = ${TOO_NEW}`);
+    fs.writeFileSync(file, sealWithKey(db.serialize(), km, DB_MAGIC));
+    db.close();
+    const before = bytes(file);
+
+    const m2 = new DbManager(userData, opts);
+    expect(m2.start()).toEqual({ state: 'locked' });
+    expect(await m2.unlock('geheim-123')).toEqual({ state: 'incompatible', reason: 'tooNew' });
+    m2.shutdown(false);
+    mgr = m2;
+    expect(bytes(file).equals(before)).toBe(true);
+  });
+
+  it('a failing migration leaves the database unchanged and is not treated as damaged', () => {
+    // An old database whose first migration cannot run (its table already exists).
+    const file = path.join(userData, WAL_NAME);
+    const db = new Database(file);
+    db.exec(`CREATE TABLE school_class (x TEXT); INSERT INTO school_class VALUES ('${SECRET}')`);
+    db.close();
+    const list = files(userData);
+    const before = bytes(file);
+
+    expect(mgr.start()).toEqual({ state: 'incompatible', reason: 'migrationFailed' });
+    expect(mgr.corrupt).toBeNull();
+    mgr.shutdown(false);
+    expect(files(userData)).toEqual(list);
+    expect(bytes(file).equals(before)).toBe(true);
+    const check = new Database(file, { readonly: true });
+    expect(check.pragma('user_version', { simple: true })).toBe(0);
+    expect(check.prepare('SELECT x FROM school_class').pluck().get()).toBe(SECRET);
+    check.close();
   });
 });

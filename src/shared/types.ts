@@ -185,7 +185,9 @@ export type StorageState =
   | { state: 'ready' }
   | { state: 'locked' }
   | { state: 'unavailable'; reason: string; canCreate: boolean }
-  | { state: 'inUse'; lock: LockInfo };
+  | { state: 'inUse'; lock: LockInfo }
+  /** The file is left untouched: written by a newer program version, or its migration failed. */
+  | { state: 'incompatible'; reason: 'tooNew' | 'migrationFailed' };
 
 export interface StorageInfo {
   /** Folder that holds the database. */

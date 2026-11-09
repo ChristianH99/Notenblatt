@@ -1,14 +1,12 @@
 /**
  * §9.4 step 15 / §7.4: viewport checks at 1280×720 and 1440×960 (touch mode),
- * plus screenshots for TESTREPORT.md.
+ * plus screenshots of the main views.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import { GOLDEN_NAMES } from '../fixtures/golden';
-import { cell, invoke, launch, navClick, netLog, ROOT, tempDir } from './helpers';
-
-const SHOTS = path.join(ROOT, 'docs', 'screenshots');
+import { cell, invoke, launch, navClick, netLog, ROOT, SCREENSHOTS, tempDir } from './helpers';
 
 interface ExamDataLite {
   tasks: { id: number }[];
@@ -114,12 +112,12 @@ async function assertStickyAfterScroll(page: Page): Promise<void> {
   });
 }
 
-test.beforeAll(() => fs.mkdirSync(SHOTS, { recursive: true }));
+test.beforeAll(() => fs.mkdirSync(SCREENSHOTS, { recursive: true }));
 
 test('1280×720 laptop: class of 32, 10 tasks fully usable', async () => {
   const dir = tempDir();
   let { app, page } = await launch(dir, { width: 1280, height: 720 });
-  await page.screenshot({ path: path.join(SHOTS, 'welcome-1280x720.png') });
+  await page.screenshot({ path: path.join(SCREENSHOTS, 'welcome-1280x720.png') });
   await seed(page);
   await app.close();
   ({ app, page } = await launch(dir, { width: 1280, height: 720 }));
@@ -130,7 +128,7 @@ test('1280×720 laptop: class of 32, 10 tasks fully usable', async () => {
   expect(Math.round(h)).toBe(30);
   await assertNoOverflow(page);
   await cell(page, 0, 0).click();
-  await page.screenshot({ path: path.join(SHOTS, 'exam-1280x720.png') });
+  await page.screenshot({ path: path.join(SCREENSHOTS, 'exam-1280x720.png') });
   await assertStickyAfterScroll(page);
   // keyboard navigation to the last cell scrolls it into view, not under sticky columns
   for (let i = 0; i < 31; i++) await page.keyboard.press('ArrowDown');
@@ -146,20 +144,33 @@ test('1280×720 laptop: class of 32, 10 tasks fully usable', async () => {
   await setSystem('LIN6');
   await expect(page.locator('#verbal-0')).not.toHaveText('');
   await assertNoOverflow(page);
-  await page.screenshot({ path: path.join(SHOTS, 'exam-linear-1280x720.png') });
+  await page.screenshot({ path: path.join(SCREENSHOTS, 'exam-linear-1280x720.png') });
   await setSystem('NP15');
-  // navigation overlay and class view (wait until the overlay of the previous pick has closed)
+  // navigation overlay and class view (the overlay closes as soon as an entry is picked)
   const navOverlay = page.getByRole('navigation', { name: 'Klassen und Prüfungen' });
   await expect(navOverlay).toBeHidden();
   await page.keyboard.press('Control+b');
   await expect(navOverlay).toBeVisible();
-  await page.screenshot({ path: path.join(SHOTS, 'nav-overlay-1280x720.png') });
+  await page.screenshot({ path: path.join(SCREENSHOTS, 'nav-overlay-1280x720.png') });
   await page.getByRole('navigation', { name: 'Klassen und Prüfungen' }).getByRole('button', { name: '10b' }).click();
   await assertNoOverflow(page);
-  await page.screenshot({ path: path.join(SHOTS, 'class-1280x720.png') });
+  await page.screenshot({ path: path.join(SCREENSHOTS, 'class-1280x720.png') });
   await page.getByRole('button', { name: 'Einstellungen' }).click();
   await assertNoOverflow(page);
-  await page.screenshot({ path: path.join(SHOTS, 'settings-1280x720.png') });
+  await page.screenshot({ path: path.join(SCREENSHOTS, 'settings-1280x720.png') });
+  // info page: version, own license, third-party licenses with full texts
+  const { version } = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')) as { version: string };
+  await page.getByRole('region', { name: 'Über Notenblatt' }).scrollIntoViewIfNeeded();
+  await expect(page.getByTestId('app-version')).toHaveText(version === '0.0.0' ? '0.0.0 (Entwicklungsversion)' : version);
+  await expect(page.getByText('Copyright © 2026 Christian Häußler')).toBeVisible();
+  const licenses = page.getByTestId('third-party-licenses');
+  for (const name of ['electron', 'better-sqlite3', 'react', 'react-dom', 'zod', 'zustand', 'SQLite', 'Fluent UI System Icons']) {
+    await expect(licenses.getByText(name, { exact: true })).toBeVisible();
+  }
+  await licenses.getByText('better-sqlite3', { exact: true }).click();
+  await expect(licenses.locator('details[open] pre')).toContainText('Permission is hereby granted');
+  await assertNoOverflow(page);
+  await page.screenshot({ path: path.join(SCREENSHOTS, 'about-1280x720.png') });
   expect(await netLog(app)).toEqual([]);
   await app.close();
 });
@@ -184,7 +195,7 @@ test('1440×960 Surface with touch mode: 40 px rows, sticky columns', async () =
   await expect(page.locator('#cell-0-0 input')).toHaveAttribute('inputmode', 'decimal');
   await page.keyboard.press('Escape');
   await assertNoOverflow(page);
-  await page.screenshot({ path: path.join(SHOTS, 'exam-touch-1440x960.png') });
+  await page.screenshot({ path: path.join(SCREENSHOTS, 'exam-touch-1440x960.png') });
   await assertStickyAfterScroll(page);
   expect(await netLog(app)).toEqual([]);
   await app.close();
