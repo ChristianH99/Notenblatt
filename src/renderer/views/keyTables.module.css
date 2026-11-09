@@ -1,0 +1,59 @@
+.key {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
+}
+.key th,
+.key td {
+  height: 21px;
+  padding: 0 5px;
+  border: 1px solid var(--c-grid);
+  white-space: nowrap;
+}
+:global(.touch) .key th,
+:global(.touch) .key td {
+  height: 24px;
+}
+.key th {
+  background: var(--c-header);
+  font-weight: var(--fw-semibold);
+  text-align: right;
+}
+.key th:first-child {
+  text-align: left;
+}
+.key tr.groupEnd td {
+  border-bottom-color: #aeb6bf;
+}
+.merged {
+  vertical-align: middle;
+  background: #fafbfc;
+}
+.unreachable td {
+  color: var(--c-text-disabled);
+  background: #f7f8f9;
+}
+.unreachable td.merged {
+  color: var(--c-text);
+}
+.low {
+  color: var(--c-low);
+  font-weight: var(--fw-semibold);
+}
+.figures {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 12px;
+  margin: 0;
+  font-size: var(--fs-13);
+}
+.figures dt {
+  color: var(--c-text-2);
+}
+.figures dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--fw-semibold);
+}

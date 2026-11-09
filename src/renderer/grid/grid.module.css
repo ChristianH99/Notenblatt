@@ -1,0 +1,317 @@
+.scroller {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: var(--c-window);
+  position: relative;
+  border-right: 1px solid var(--c-grid);
+}
+
+.table {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-size: var(--fs-13);
+  font-variant-numeric: tabular-nums;
+  background: var(--c-surface);
+  user-select: none;
+}
+
+.table th,
+.table td {
+  height: var(--row-h);
+  padding: 0 6px;
+  border-right: 1px solid var(--c-grid);
+  border-bottom: 1px solid var(--c-grid);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: var(--c-surface);
+}
+
+/* header rows */
+.table thead th {
+  position: sticky;
+  z-index: 3;
+  background: var(--c-header);
+  font-weight: var(--fw-semibold);
+}
+.table thead tr:first-child th {
+  top: 0;
+}
+.table thead tr:nth-child(2) th {
+  top: var(--row-h);
+  background: var(--c-maxrow);
+  font-weight: var(--fw-regular);
+  border-bottom: 2px solid #b9c0c8;
+}
+.table thead tr:nth-child(2) th.rowLabel {
+  background: var(--c-maxrow);
+  font-weight: var(--fw-semibold);
+}
+
+/* footer rows */
+.table tfoot td,
+.table tfoot th {
+  position: sticky;
+  z-index: 3;
+  background: var(--c-header);
+  color: var(--c-text);
+}
+.table tfoot tr:first-child td,
+.table tfoot tr:first-child th {
+  bottom: var(--row-h);
+  border-top: 2px solid #b9c0c8;
+}
+.table tfoot tr:last-child td,
+.table tfoot tr:last-child th {
+  bottom: 0;
+}
+.table tfoot th {
+  font-weight: var(--fw-semibold);
+  text-align: right;
+}
+
+/* sticky columns */
+.stickyL,
+.stickyR {
+  position: sticky;
+  z-index: 2;
+}
+.table thead .stickyL,
+.table thead .stickyR,
+.table tfoot .stickyL,
+.table tfoot .stickyR {
+  z-index: 4;
+}
+.lastLeft {
+  border-right: 2px solid #b9c0c8 !important;
+}
+.firstRight {
+  border-left: 2px solid #b9c0c8;
+}
+
+.rowLabel {
+  text-align: right;
+}
+
+.nr {
+  padding: 0 !important;
+  text-align: right;
+  color: var(--c-text-2);
+}
+.nrBtn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  padding: 0 6px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: default;
+}
+.nrBtn:hover {
+  background: var(--c-hover);
+}
+.nrBtn:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: -2px;
+}
+.name {
+  background: var(--c-names) !important;
+}
+
+/* task cells */
+.cell {
+  text-align: right;
+  cursor: cell;
+  position: relative;
+}
+.cell.focused {
+  outline: 2px solid var(--c-accent);
+  outline-offset: -2px;
+  z-index: 1;
+}
+.selected {
+  background: var(--c-accent-tint) !important;
+}
+.editInput {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0 6px;
+  border: 0;
+  outline: 2px solid var(--c-accent);
+  outline-offset: -2px;
+  background: var(--c-surface);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.editInput.left {
+  text-align: left;
+}
+
+.headCell {
+  position: relative;
+  text-align: right;
+  cursor: cell;
+}
+.headLabel {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.headActive {
+  background: #dfe7ef !important;
+}
+.thead2Active {
+  background: #e4ecdc !important;
+}
+.moreBtn {
+  position: absolute;
+  left: 1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--c-text-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  cursor: default;
+}
+.moreBtn :global(svg) {
+  width: 16px;
+  height: 16px;
+}
+.headCell:hover .moreBtn,
+.headCell.headActive .moreBtn,
+.moreBtn:focus-visible,
+.moreBtn[aria-expanded='true'],
+:global(.touch) .moreBtn {
+  opacity: 1;
+}
+.moreBtn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+.moreBtn:focus-visible {
+  outline: 2px solid var(--c-accent);
+}
+:global(.touch) .moreBtn {
+  width: 32px;
+  height: 32px;
+  position: static;
+  transform: none;
+  float: left;
+}
+:global(.touch) .table thead th.headCell {
+  padding-left: 2px;
+}
+
+.addCol {
+  padding: 0 !important;
+  text-align: center;
+  background: var(--c-header) !important;
+}
+.addBtn {
+  width: 100%;
+  height: calc(2 * var(--row-h) - 2px);
+  border: 0;
+  background: transparent;
+  color: var(--c-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+.addBtn:hover {
+  background: var(--c-accent-tint);
+}
+.addBtn:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: -2px;
+}
+.emptyCol {
+  background: #fafbfc !important;
+}
+
+/* result columns */
+.sum {
+  /* no position here: sticky (from .stickyR) already anchors the ::before marker */
+  text-align: right;
+  font-weight: var(--fw-semibold);
+}
+.partial::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-style: solid;
+  border-width: 7px 7px 0 0;
+  border-color: #d29b00 transparent transparent transparent;
+}
+.result {
+  text-align: right;
+  font-weight: var(--fw-semibold);
+}
+.verbal {
+  text-align: left;
+  color: var(--c-text);
+}
+.low {
+  color: var(--c-low) !important;
+}
+
+/* row states */
+.rowActive > .name,
+.rowActive > .nr {
+  background: #e2ebf4 !important;
+}
+.absent td,
+.absent td.name {
+  background: var(--c-absent) !important;
+  color: var(--c-text-disabled);
+}
+.absent .nrBtn {
+  color: var(--c-text-disabled);
+}
+.absentTag {
+  font-size: var(--fs-12);
+  margin-right: 2px;
+}
+
+.confirmText {
+  margin: 0;
+}
+
+/* Directly entered sum: tasks of the row are locked and greyed out. */
+.locked {
+  color: var(--c-text-disabled) !important;
+  background: #f4f5f7 !important;
+  cursor: not-allowed;
+}
+.sumOverride {
+  background: var(--c-accent-tint) !important;
+  box-shadow: inset 3px 0 0 var(--c-accent);
+}
+
+/* Editable sum: no position here — it must stay sticky (.stickyR). */
+.sumCell {
+  cursor: cell;
+}
+.sumCell.focused {
+  outline: 2px solid var(--c-accent);
+  outline-offset: -2px;
+}

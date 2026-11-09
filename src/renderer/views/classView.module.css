@@ -1,0 +1,132 @@
+.wrap {
+  max-width: 1400px;
+}
+.tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--c-grid);
+}
+.tab {
+  min-height: var(--hit);
+  padding: 4px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  font-size: var(--fs-14);
+  color: var(--c-text-2);
+  cursor: default;
+}
+.tab:hover {
+  color: var(--c-text);
+  background: var(--c-hover);
+}
+.tab:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: -2px;
+}
+.tabActive {
+  color: var(--c-text);
+  font-weight: var(--fw-semibold);
+  border-bottom-color: var(--c-accent);
+}
+.examCat {
+  float: right;
+  font-size: var(--fs-12);
+  color: var(--c-text-2);
+}
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(260px, 2fr);
+  gap: 16px;
+  align-items: start;
+}
+.students {
+  min-width: 0;
+}
+.tableWrap {
+  max-height: calc(100vh - 260px);
+  overflow: auto;
+}
+.colCheck {
+  width: 36px;
+  text-align: center !important;
+}
+.colCheck input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--c-accent);
+  vertical-align: middle;
+}
+.colNr {
+  width: 44px;
+  color: var(--c-text-2);
+}
+.nameCol {
+  padding: 0 !important;
+  background: var(--c-names);
+}
+.cellInput {
+  width: 100%;
+  height: calc(var(--row-h) - 1px);
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  font-size: var(--fs-13);
+}
+.cellInput:focus {
+  outline: 2px solid var(--c-accent);
+  outline-offset: -2px;
+  background: var(--c-surface);
+}
+.cellInput::placeholder {
+  color: var(--c-text-disabled);
+}
+.newRow td {
+  background: var(--c-surface);
+}
+.selRow td {
+  background: var(--c-accent-tint) !important;
+}
+.empty {
+  padding: 12px;
+}
+.examList {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+.examItem {
+  display: block;
+  width: 100%;
+  min-height: var(--hit);
+  padding: 4px 12px;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-size: var(--fs-14);
+  color: var(--c-accent);
+  cursor: default;
+}
+.examItem:hover {
+  background: var(--c-hover);
+  text-decoration: underline;
+}
+.examItem:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: -2px;
+}
+
+@media (max-width: 1100px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

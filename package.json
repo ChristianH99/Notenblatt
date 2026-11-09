@@ -1,0 +1,84 @@
+{
+  "name": "notenblatt",
+  "productName": "Notenblatt",
+  "version": "1.2.0",
+  "description": "Notenblatt – Prüfungen offline bewerten",
+  "author": "Notenblatt",
+  "license": "MIT",
+  "private": true,
+  "main": "out/main/index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.e2e.json",
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:db": "vitest run --project db",
+    "coverage": "vitest run --project unit --coverage",
+    "e2e": "electron-vite build && playwright test",
+    "icons": "node scripts/make-icons.mjs",
+    "dist:win": "electron-vite build && electron-builder --win --x64 --publish never && electron-builder --win --arm64 --publish never"
+  },
+  "build": {
+    "appId": "de.notenblatt.app",
+    "productName": "Notenblatt",
+    "copyright": "Notenblatt",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["out/**/*", "package.json"],
+    "asarUnpack": ["node_modules/better-sqlite3/**"],
+    "npmRebuild": false,
+    "electronLanguages": ["de", "en-US"],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": ["nsis"],
+      "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Notenblatt",
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh",
+      "installerLanguages": ["de_DE"],
+      "language": "1031",
+      "unicode": true
+    }
+  },
+  "dependencies": {
+    "better-sqlite3": "13.0.3",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.65.0",
+    "@types/better-sqlite3": "9.6.0",
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.2.1",
+    "@vitest/coverage-v8": "5.1.0",
+    "electron": "45.2.3",
+    "electron-builder": "26.18.0",
+    "electron-vite": "6.0.0",
+    "eslint": "10.14.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "fast-check": "4.10.2",
+    "globals": "17.14.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1",
+    "vite": "8.3.6",
+    "vitest": "5.1.0",
+    "zustand": "5.1.0"
+  }
+}

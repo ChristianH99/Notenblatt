@@ -1,0 +1,193 @@
+@page {
+  size: A4 landscape;
+  margin: 9mm 10mm;
+}
+
+.root {
+  background: #fff;
+  color: #000;
+  font-family: var(--font);
+  font-size: 8.5pt;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+:global(body:has(.root)) {
+  overflow: visible;
+  background: #fff;
+}
+
+.page {
+  break-after: page;
+  page-break-after: always;
+  width: 277mm;
+}
+.page:last-child {
+  break-after: auto;
+  page-break-after: auto;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  padding-bottom: 2mm;
+  margin-bottom: 3mm;
+  border-bottom: 0.3mm solid #000;
+  font-size: 10pt;
+}
+.title {
+  font-size: 12pt;
+  font-weight: 600;
+}
+.school {
+  margin-left: auto;
+  color: #333;
+}
+
+.layout {
+  display: flex;
+  gap: 5mm;
+  align-items: flex-start;
+}
+.main {
+  flex: 1;
+  min-width: 0;
+}
+
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-variant-numeric: tabular-nums;
+}
+.grid th,
+.grid td {
+  height: 4.6mm;
+  padding: 0 1mm;
+  border: 0.15mm solid #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.grid th {
+  background: #e8e8e8;
+  font-weight: 600;
+}
+.grid thead {
+  display: table-header-group;
+}
+.maxRow th {
+  background: #f2f2f2;
+  font-weight: 400;
+}
+.grid tfoot td,
+.grid tfoot th {
+  background: #eee;
+  font-weight: 600;
+}
+.cNr {
+  width: 6mm;
+}
+.cName {
+  width: 27mm;
+}
+.cFirst {
+  width: 22mm;
+}
+.cSum {
+  width: 13mm;
+}
+.cRes {
+  width: 10.5mm;
+}
+.cVerbal {
+  width: 20mm;
+}
+.name {
+  background: #f6f6f6;
+}
+.right {
+  text-align: right;
+}
+.center {
+  text-align: center;
+}
+.bold {
+  font-weight: 600;
+}
+.low {
+  text-decoration: underline;
+}
+.absent td {
+  color: #777;
+}
+
+.side {
+  width: 66mm;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3mm;
+}
+.side :global(table) th,
+.side :global(table) td {
+  border-color: #888 !important;
+  height: 4.2mm;
+  font-size: 8pt;
+}
+.side :global(table) th {
+  background: #e8e8e8 !important;
+}
+.side :global(table) td {
+  color: #000 !important;
+  background: #fff !important;
+}
+.sideTitle {
+  font-weight: 600;
+  font-size: 9.5pt;
+}
+
+.spiegel {
+  margin-bottom: 6mm;
+}
+.spiegelHead {
+  width: 30mm;
+}
+.spiegel th,
+.spiegel td {
+  height: 7mm;
+  font-size: 10pt;
+}
+.spiegelBody {
+  display: flex;
+  gap: 12mm;
+  align-items: flex-start;
+}
+.facts {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 2mm 8mm;
+  margin: 0;
+  font-size: 11pt;
+}
+.facts dt {
+  color: #333;
+}
+.facts dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+.factPair {
+  display: contents;
+}
+
+.keyCols {
+  display: flex;
+  gap: 4mm;
+  align-items: flex-start;
+}
+.keyCols table {
+  width: 52mm;
+}

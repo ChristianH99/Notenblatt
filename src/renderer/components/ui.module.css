@@ -1,0 +1,290 @@
+/* ───── Buttons ───── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--control-h);
+  min-width: var(--hit);
+  padding: 0 12px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-control);
+  background: var(--c-surface);
+  color: var(--c-text);
+  font-size: var(--fs-14);
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+}
+.btn:hover:not(:disabled) {
+  background: var(--c-hover);
+}
+.btn:active:not(:disabled) {
+  background: #dfe3e8;
+}
+.btn:disabled {
+  color: var(--c-text-disabled);
+  border-color: var(--c-grid);
+}
+.btn:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 1px;
+}
+.primary {
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+  color: #fff;
+}
+.primary:hover:not(:disabled) {
+  background: var(--c-accent-hover);
+}
+.primary:active:not(:disabled) {
+  background: #173d59;
+}
+.danger {
+  background: var(--c-error);
+  border-color: var(--c-error);
+  color: #fff;
+}
+.danger:hover:not(:disabled) {
+  background: #8f1f16;
+}
+.danger:active:not(:disabled) {
+  background: #771a12;
+}
+.primary:disabled,
+.danger:disabled {
+  background: #c9ced4;
+  border-color: #c9ced4;
+  color: #fff;
+}
+.quiet {
+  border-color: transparent;
+  background: transparent;
+  padding: 0 8px;
+}
+.quiet:hover:not(:disabled) {
+  background: var(--c-hover);
+}
+.iconOnly {
+  padding: 0;
+  justify-content: center;
+  width: var(--control-h);
+}
+.pressed {
+  background: var(--c-accent-tint) !important;
+  border-color: var(--c-accent);
+}
+
+/* ───── Fields ───── */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.fieldLabel {
+  font-size: var(--fs-13);
+  color: var(--c-text-2);
+}
+.input,
+.select {
+  height: var(--control-h);
+  padding: 0 8px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-control);
+  background: var(--c-surface);
+  font-size: var(--fs-14);
+  min-width: 0;
+}
+.input:hover,
+.select:hover {
+  border-color: #9aa3ad;
+}
+.input:focus,
+.select:focus {
+  border-color: var(--c-accent);
+  box-shadow: inset 0 0 0 1px var(--c-accent);
+  outline: none;
+}
+.input[aria-invalid='true'] {
+  border-color: var(--c-error);
+}
+.textarea {
+  padding: 6px 8px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-control);
+  font-family: Consolas, 'Cascadia Mono', monospace;
+  font-size: var(--fs-13);
+  resize: vertical;
+}
+.textarea:focus {
+  border-color: var(--c-accent);
+  box-shadow: inset 0 0 0 1px var(--c-accent);
+  outline: none;
+}
+.hint {
+  font-size: var(--fs-12);
+  color: var(--c-text-2);
+}
+.error {
+  font-size: var(--fs-13);
+  color: var(--c-error);
+}
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--hit);
+  font-size: var(--fs-14);
+  cursor: default;
+}
+.check input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--c-accent);
+}
+.radioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.radioGroup legend {
+  padding: 0;
+  margin-bottom: 4px;
+  font-size: var(--fs-13);
+  color: var(--c-text-2);
+}
+.radioRow {
+  flex-direction: row;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* ───── Dialog ───── */
+.dialog {
+  width: min(560px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  padding: 0;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-dialog);
+  background: var(--c-surface);
+  color: var(--c-text);
+  box-shadow: var(--shadow);
+}
+.dialog.wide {
+  width: min(720px, calc(100vw - 48px));
+}
+.dialog::backdrop {
+  background: rgba(30, 35, 41, 0.32);
+}
+.dialogInner {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 50px);
+}
+.dialogTitle {
+  padding: 16px 24px 8px;
+  font-size: var(--fs-16);
+  font-weight: var(--fw-semibold);
+}
+.dialogBody {
+  padding: 8px 24px 16px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dialogFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--c-grid);
+  background: #fafbfc;
+}
+
+/* ───── Menu ───── */
+.menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 200px;
+  padding: 4px 0;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-control);
+  background: var(--c-surface);
+  box-shadow: var(--shadow);
+}
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: var(--hit);
+  padding: 4px 16px 4px 12px;
+  border: 0;
+  background: none;
+  font-size: var(--fs-14);
+  text-align: left;
+  cursor: default;
+}
+.menuItem:hover:not(:disabled),
+.menuItem:focus-visible {
+  background: var(--c-accent-tint);
+  outline: none;
+}
+.menuItem:disabled {
+  color: var(--c-text-disabled);
+}
+.menuItem.dangerItem {
+  color: var(--c-error);
+}
+.menuSep {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--c-grid);
+}
+.menuIcon {
+  width: 20px;
+  color: var(--c-text-2);
+}
+
+/* ───── Simple table (class view, dialogs) ───── */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-13);
+}
+.table th,
+.table td {
+  height: var(--row-h);
+  padding: 0 8px;
+  border-bottom: 1px solid var(--c-grid);
+  text-align: left;
+  white-space: nowrap;
+}
+.table th {
+  position: sticky;
+  top: 0;
+  background: var(--c-header);
+  font-weight: var(--fw-semibold);
+  color: var(--c-text);
+  z-index: 1;
+}
+.table tr.dup td {
+  background: var(--c-warning-bg);
+}
+.notice {
+  padding: 8px 12px;
+  border-left: 3px solid var(--c-warning);
+  background: var(--c-warning-bg);
+  color: var(--c-text);
+  font-size: var(--fs-13);
+}
+.noticeError {
+  border-left-color: var(--c-error);
+  background: var(--c-error-bg);
+}

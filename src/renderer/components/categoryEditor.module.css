@@ -1,0 +1,40 @@
+.edit {
+  padding: 2px 4px !important;
+}
+.input,
+.select {
+  height: calc(var(--row-h) - 4px);
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: var(--r-control);
+  background: transparent;
+  font-size: var(--fs-13);
+}
+.input:hover,
+.select:hover {
+  border-color: var(--c-border);
+}
+.input:focus,
+.select:focus {
+  border-color: var(--c-accent);
+  box-shadow: inset 0 0 0 1px var(--c-accent);
+  background: var(--c-surface);
+  outline: none;
+}
+td.edit .input[style*='60'] {
+  text-align: right;
+}
+.times {
+  color: var(--c-text-2);
+  margin-right: 2px;
+}
+.actions {
+  text-align: right;
+  white-space: nowrap;
+}
+.up :global(svg) {
+  transform: rotate(-90deg);
+}
+.down :global(svg) {
+  transform: rotate(90deg);
+}

@@ -1,0 +1,57 @@
+/* Design tokens (§7.2). Calm, dense Windows line-of-business look. */
+:root {
+  --c-window: #f3f4f6;
+  --c-surface: #ffffff;
+  --c-grid: #d5d9de;
+  --c-header: #edeff2;
+  --c-names: #f0f5fa;
+  --c-maxrow: #f1f5ec;
+  --c-text: #1e2329;
+  --c-text-2: #5b6570;
+  --c-text-disabled: #9aa3ad;
+  --c-accent: #245b85;
+  --c-accent-hover: #1d4a6c;
+  --c-accent-tint: #e3edf5;
+  --c-error: #a8261b;
+  --c-error-bg: #fbeae8;
+  --c-warning: #8a5a00;
+  --c-warning-bg: #fff3d6;
+  --c-low: #a8261b;
+  --c-border: #c4cad1;
+  --c-hover: #e8ebef;
+  --c-absent: #f6f7f8;
+
+  --fs-12: 12px;
+  --fs-13: 13px;
+  --fs-14: 14px;
+  --fs-16: 16px;
+  --fs-20: 20px;
+  --fw-regular: 400;
+  --fw-semibold: 600;
+
+  --sp-4: 4px;
+  --sp-8: 8px;
+  --sp-12: 12px;
+  --sp-16: 16px;
+  --sp-24: 24px;
+
+  --r-control: 3px;
+  --r-dialog: 4px;
+
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --focus: 0 0 0 2px var(--c-accent);
+
+  --font: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+
+  --row-h: 30px;
+  --control-h: 30px;
+  --hit: 28px;
+  --nav-w: 220px;
+  --panel-w: 300px;
+}
+
+:root.touch {
+  --row-h: 40px;
+  --control-h: 40px;
+  --hit: 40px;
+}

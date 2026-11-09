@@ -1,0 +1,105 @@
+# Decisions
+
+Details the specification (`PROMPT_Notenblatt.md`) leaves open, or where the implementation deviates for a stated reason. Each entry: decision — reason.
+
+## Toolchain and platform
+
+1. **Electron 45.2.3** (latest stable on 2026-11-08), exact versions pinned for every dependency.
+2. **TypeScript 6.0.3, not 7.x.** — `typescript-eslint` 8.72 supports TS `<6.1`; TS 7 (native compiler) would break linting. `baseUrl` removed (deprecated in TS 6).
+3. **`better-sqlite3` 13 without `electron-builder install-app-deps`.** — Version 13 is an N-API module with bundled prebuilds for win32-x64/arm64; it loads unchanged in Node 22 (tests) and Electron 45. Consequences: no C++ toolchain needed, `npmRebuild: false`, the same binary runs in Vitest and in the app. The spec's `install-app-deps` step is therefore unnecessary.
+4. **DB integration tests run in plain Node/Vitest**, not inside Electron (possible because of 3).
+5. **Separate `tsconfig.e2e.json`** with DOM types for Playwright code that runs in `page.evaluate`.
+
+## Grading and statistics
+
+6. **"24 wrong results" for the naive float formula** — reproduced exactly for *integer* M ≤ 200 at 0,5 steps. Including half-point M (0,5 … 200) there are 32. The test asserts both numbers.
+7. **Percentages** (group shares, "Note 5 und 6") are **rounded half-up to one decimal** from exact integer ratios (the golden data — 94,1 % / 5,9 % — is rounded, not truncated). A trailing ",0" is dropped ("100 %"). Averages are **truncated** as specified.
+8. **Per-task share** = round(truncated average / max × 100), computed as `round(avgTenths · 40 / maxQp)` on integers.
+9. **NP key display order** "max–min" in the Excel sense is shown as two columns "von" (min) and "bis" (max).
+10. **"mitgeschrieben x / y"**: y counts all students listed in the exam (present + absent); "fehlt: z" shown only when z > 0. An additional "Ø Punkte" line (average sum of M) is shown in the panel.
+11. **Linear key "Punkte von–bis"** is shown as "max–min" (e.g. "55–50"), like the linear workbook which lists from full points downwards.
+12. **Absent student with old entries** keeps the entries in the DB but they are greyed out, not editable and excluded from all statistics. Switching back to "Teilgenommen" restores them.
+
+## Data and editing
+
+13. **New tasks default to 1 point max** (`max_qp > 0` is required by the schema); the max row is the first thing the teacher fills in.
+14. **Lowering a task's max below an existing entry is refused** with a message naming the student (analogous to the coarser-step rule).
+15. **Undo/redo** covers cell edits *and* task structure changes (add, delete with all its entries, move, rename, max). A restored task gets a new ID; pending undo/redo entries are remapped. History: last 100 steps per exam, in memory only; cleared completely when a student or class is deleted, per exam when an exam is deleted, and on data reset.
+16. **Paste** starts at the selection's top-left cell; a block that leaves the grid, touches an absent student or contains any invalid value is rejected entirely (first error shown, nothing applied).
+17. **Enter on a cell that is not being edited moves** (like Excel); F2 / double-click edits. In overwrite mode arrow keys commit and move, in F2 mode left/right move the caret.
+18. **"Prüfung duplizieren"** copies kind, number, subject, teacher, scheme, step and all tasks (labels + max); date becomes today; no scores; all current students present.
+19. **"Struktur übernehmen von…"** also preselects the source's point step; if the user picks a coarser step that does not fit the max values, creation is refused with the conflicting task named.
+20. **Name list paste**: lines with a TAB use the first two non-empty columns; otherwise the first comma splits; otherwise the first whitespace splits ("Müller Anna Lena" → last "Müller", first "Anna Lena"). Duplicates (within the paste or vs. the class) are highlighted and need a second click.
+21. **Date input** accepts `T.M.JJ`, `TT.MM.JJJJ` etc.; stored as ISO.
+22. **School year format** "2025/26" (also "2025/2026" accepted); the retention check uses 31 July of the second year as the end.
+
+## Privacy, security, data safety
+
+23. **Backup snapshot via `db.serialize()` instead of `db.backup()`** — equally consistent (SQLite serialize API), but the plaintext snapshot never touches the disk; it is encrypted in memory and the buffer is zeroed afterwards. The WAL flag in the header is normalised so the snapshot can be validated in memory.
+24. **Backup container**: magic `NBLTBKP\0`, version 1, scrypt (N = 2^17, r = 8, p = 1) → AES-256-GCM, header authenticated as AAD, payload gzip-compressed. Import is two-phase (pick → password → show counts → confirm); nothing changes before the final confirmation.
+25. **Import replaces the DB file**: close → overwrite old files with zeros → delete → write snapshot → reopen and migrate.
+26. **"Alle Daten löschen…" restarts in-process** instead of `app.relaunch()`: DB/WAL/SHM are overwritten and deleted, session storage and cache cleared, the clipboard cleared, a fresh empty DB opened, and the renderer state re-initialised. Effect for the user is identical to a restart; it keeps the E2E test attached and avoids a visible window flash.
+27. **Renderer reset without page reload** — navigation (including reload) is blocked by the hardening; after import/wipe the store is re-initialised instead.
+28. **In-memory session partition** (`partition: 'notenblatt'`, no `persist:`) so Chromium writes no cache/storage of the UI to disk. `sessionData` is redirected into the data folder so the uninstaller's "delete data" option removes everything. *(Since version 1.1 the window position is stored in `config.json`, not in the settings table — it is needed before an encrypted or remote database is open.)*
+29. **Clipboard scrubbing**: after deleting students or a class, the system clipboard is cleared if it contains one of the deleted last names (best effort; Electron 45 clipboard API is async).
+30. **Corrupted DB**: detected by open errors or `PRAGMA quick_check`; the DB plus `-wal`/`-shm` are renamed to `*.defekt-YYYYMMDD-HHMMSS`, a fresh DB is opened, and the renderer shows "Datenbank beschädigt" with "Neu beginnen" / "Datensicherung wiederherstellen" (the password must be typed, so this is a renderer dialog, not a native one).
+31. **Logging**: stderr only (no log file), only event codes and numbers; info level suppressed in production.
+32. **`NOTENBLATT_USER_DATA`** env var overrides the data directory — used by all tests so they never touch the real `%APPDATA%\Notenblatt`.
+33. **Extra Chromium switches** (`disable-background-networking`, `disable-component-update`, no pings, translate/media-router off) in addition to the request filter.
+
+## UI
+
+34. **Navigation on narrow screens (< 1366 px)**: a 48 px icon rail; Ctrl+B or the rail's class icon opens the full navigation as an **overlay** that closes after a choice or with Esc. The class name in the title bar is a link back to the class. (The plain rail alone would hide all classes on the 1280 px target laptop.)
+35. **Status-bar messages** are the "inline message in the status area": errors are shown in red on a light red background for 4 s; "Gespeichert" is the quiet default.
+36. **Key table** shows "von" before "bis"; unreachable NP rows show "–" and are greyed. The % column is merged per group of three.
+37. **Chart colours**: neutral blue-grey bars, grades 5/6 in muted red; in print, greys only (lighter grey for 5/6) plus underlined low grades so black-and-white printing stays readable.
+38. **Native `<dialog>`** for all modals (focus trap and Esc for free); Windows button order (primary, then "Abbrechen").
+39. **Row status** is changed via the Nr cell (click or Shift+F10/context-menu key while a row cell is focused) → "Teilgenommen"/"Fehlt".
+40. **Combobox for "Art" and "Fach"**: native `<datalist>` autocompletion (presets + subjects used before).
+
+## Output
+
+41. **Print**: 32 students per A4 landscape page, header repeated; footer rows (averages) on the last page; the evaluation panel on page 1. With more than 22 tasks the panel moves to its own page so the grid keeps a usable column width.
+42. **CSV**: header row only (no max-points row), CRLF line endings, fields with `;`, `"` or line breaks quoted. Absent students: empty Summe/Note, status "fehlt"; rows without entries: status "nicht erfasst".
+43. **File names**: `YYYY-MM-DD_<Klasse>_<Fach>_<Art>-<Nr>` with `<>:"/\|?*`, control characters stripped and spaces → "-"; suffixes `_Notenspiegel` / `_Notenschluessel` for those printouts.
+
+## Packaging
+
+44. **Two separate builds** (`--x64`, then `--arm64`) so electron-builder does not also emit a combined multi-arch installer. arm64 is built with the same N-API prebuild (no cross-compilation needed).
+45. **Desktop shortcut is always created** by the assisted installer (electron-builder offers no checkbox for it without a custom page); it can simply be deleted. The installation directory is changeable.
+46. **Uninstaller data checkbox** is implemented as an extra uninstaller page in `build/installer.nsh` (unchecked by default); it never runs during silent update uninstalls (`isUpdated`).
+47. **App icon** is generated by a dependency-free script (`scripts/make-icons.mjs`): a plain grid in the accent colour.
+
+## Version 1.1 — storage location, encryption, whole-class grading
+
+### Storage location and encryption
+
+48. **Two storage modes.** The default (local folder, no password) stays exactly as before: SQLite file `notenblatt.db` in WAL mode, with `secure_delete`, checkpoint and VACUUM after deletes. As soon as a **custom folder** or a **password** is set, the database runs **in memory** and is saved after every write as **one file** `notenblatt.nbdb`. — SQLite's WAL mode needs shared memory and does not work across computers on a network share, and better-sqlite3 has no built-in encryption. SQLCipher builds (`better-sqlite3-multiple-ciphers`) need native compilation per Electron ABI, which breaks the "no toolchain, N-API prebuild" setup (decision 3).
+49. **Atomic save**: write `notenblatt.nbdb.neu`, fsync, rename over the old file. On start, a leftover `.neu` without a main file is promoted. A crash or network drop can never leave a half-written database.
+50. **Encryption** reuses the backup container (decision 24) with the magic `NBLTDB1\0`: AES-256-GCM, key from scrypt (N = 2^17, r = 8, p = 1) derived **once** when unlocking and kept in memory; every save uses a fresh random nonce. Changing the password derives a new salt and key. When encryption is switched on, the old plaintext file is overwritten with zeros before it is replaced (local WAL files are shredded). Minimum password length 8. There is deliberately no recovery mechanism.
+51. **One device at a time.** `notenblatt.nbdb.lock` (JSON: host, user, PID, start, heartbeat) is written on open and refreshed every 30 s. A lock is stale after 2 minutes without heartbeat, or immediately if it belongs to a process on the same computer that no longer runs. A second device sees "Datenbank wird gerade verwendet" with "Erneut versuchen" / "Trotzdem öffnen" (takes the lock over). Simultaneous editing is not supported — merging two in-memory copies of a grade book is error-prone and not needed for "laptop at school, Surface at home".
+52. **Conflict detection before every save**: if the lock now names someone else, or the file's size/modification time differs from what this instance last wrote, saving stops ("…auf einem anderen Gerät geöffnet oder geändert… bitte neu starten") instead of silently overwriting another device's work.
+53. **Unreachable folder**: the change stays in memory, the status bar shows "Speichern fehlgeschlagen – …", and the heartbeat retries the save every 30 s. Closing the window with unsaved changes asks "Erneut versuchen / Ohne Speichern beenden / Abbrechen". `will-quit` also saves and releases the lock (app.quit() skips `window-all-closed`).
+54. **Start gate** instead of the app while the database is not open: "Datenbank entsperren" (password), "Speicherort nicht verfügbar" (with "Hier neue Datenbank anlegen" if the folder exists but holds no database, and "Lokalen Standardordner verwenden"), "Datenbank wird gerade verwendet".
+55. **Moving vs. opening.** "Daten in diesen Ordner verschieben" writes the current data to the new folder and then overwrites and deletes the old copy (no stray personal data). If the target already holds a database, the user chooses "Diese Datenbank verwenden" (the local data stays where it was, untouched) or "Mit meinen Daten überschreiben". Encryption is preserved when moving. Moving back to the default folder without a password returns to WAL mode.
+56. **`config.json`** (`%APPDATA%\Notenblatt`) holds only the database folder and the window position — no personal data. "Alle Daten löschen" also deletes the database in a custom folder and resets the location to the default.
+57. **Physical erasure in snapshot mode**: after deletes the in-memory DB is VACUUMed before it is saved, so the saved snapshot contains no remnants. Old file versions on a network share cannot be overwritten by the client (server-side storage); with encryption on they only ever contained ciphertext — hence the recommendation to encrypt when using a share.
+
+### Grading across a class
+
+58. **Categories ("Kategorien") belong to a class**: name, weight (stored in hundredths, 0,01–100), default entry mode, order. A **template** in the settings (default: Schriftlich ×3 / Mündlich ×1, Notenpunkte) is copied into each **new** class; editing the template never changes existing classes, and changing a class's weights affects only that class. "Klasse kopieren" copies the source class's categories and settings (not the template) — the next school year usually keeps the same weighting.
+59. **Migration v1 → v2** gives every existing class the default categories, puts all existing exams into "Schriftlich", and sets the class's grading system to the scheme used by most of its exams.
+60. **Entry mode per exam**: "Punkte je Aufgabe" (as before) or "Nur Note". Mark-only exams have no tasks; marks are stored as integers (NP 0–15, or grade × 10 for 1,0–6,0 with one decimal). The mode is chosen at creation and preselected from the category. Changing the scheme of a mark-only exam is refused while marks exist (the values would change meaning). Undo/redo, absent status, paste (one column), CSV, print and statistics work as for point exams.
+61. *(Superseded by 66.)* **Averaging method per class**, default **"erst Durchschnitt je Kategorie, dann gewichten"**: Ø = Σ w·Ø_k / Σ w over categories in which the student has at least one grade (this is how "schriftlich : mündlich = 3 : 1" is normally meant). Alternative: "jede Prüfung einzeln mit dem Gewicht ihrer Kategorie". All averages are computed exactly (BigInt rationals) and **truncated** to two decimals, consistent with the existing per-exam averages (ROUNDDOWN as in the Excel sheet). No "Zeugnisnote" rounding is suggested — rounding rules differ between school types.
+62. *(Superseded by 65.)* **One grading system per class** (Notenpunkte or Noten 1–6) for the overall average. Exams graded in the other scheme are shown greyed with a tooltip and **not** counted — there is no officially uniform conversion between NP and decimal grades, and a silent conversion would produce disputable numbers. New exams default to the class's system; the dialog warns when they differ.
+63. **Notenübersicht** is the default tab of a class with exams: columns grouped by category (in category order, then by date), Ø per category and Ø gesamt pinned at the right, class average per exam in the footer; clicking an exam header opens it. CSV export of the overview with the same format as the exam CSV.
+64. **Inline fields commit on Enter as well as on blur.** Blur events are deferred while the window is not focused (found by the E2E test), so a value typed and confirmed with Enter must not depend on blur.
+
+## Version 1.2 — grading system per class, final mark, direct sums
+
+65. **The grading system belongs to the class, not to the exam.** All exams of a class use the class's system (Notenpunkte or Noten 1,0–6,0); the "Bewertung" choice was removed from the exam header and the new-exam dialog. Changing it in the class's "Gewichtung" tab re-grades all point exams at once. It is **refused while a mark-only exam of the class holds marks** (an NP mark cannot be reinterpreted as a decimal grade); the message names the first such exam. Migration v3 aligns existing exams with their class; if a class's marked oral exams all use one scheme, the class adopts that scheme so no entered mark changes meaning (in the unlikely case of marked oral exams in both schemes, those in the other scheme keep it and stay excluded from the average, as before).
+66. **Only one averaging method:** every graded exam counts individually with the weight of its category, Ø = Σ w·g / Σ w. The "average per category first" option and the `avg_method` column were removed. The overview still shows the plain mean per category for information.
+67. **Final mark ("Endnote") per class**, default from the settings template: *kaufmännisch* (from x,5 to the higher number), *bei genau x,5 zugunsten der Schülerin / des Schülers* (for grades 1–6: 2,50 → 2; for NP identical to kaufmännisch because a higher NP is better), or *keine Endnote*. For grades 1–6 the precision is selectable: whole grade or one decimal. NP final marks are always whole. Rounding is computed from the **exact** fraction of the weighted average (BigInt), never from the truncated display value, so 2,4999… can never become 3. A property test compares it with a nearest-value search using the tie rule.
+68. **Direct sum entry**: the "Summe" cell of a point exam is editable (keyboard like a task cell: type, F2, Enter, Del, Ctrl+Z, paste of a column). A directly entered sum replaces the task points of that row: the task cells are shown greyed and are locked (also against paste and Del) until the sum is cleared. Existing task entries are **kept** while locked and come back when the sum is cleared (nothing is lost by accident); they are ignored in sums, per-task averages, CSV and print. The sum is validated against the total max and the point step; structure changes (lower max, delete task, coarser step) are refused if a direct sum would no longer fit.
+69. **Overview info line removed** (system, weights and method are visible in the column headers and the "Gewichtung" tab).
+70. **E2E tests use an in-memory clipboard** inside the app instead of the Windows clipboard, so they never overwrite the user's clipboard and do not fail when another program holds it open.
