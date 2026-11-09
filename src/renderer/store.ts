@@ -55,6 +55,8 @@ interface State {
   settings: Settings;
   tree: ClassTreeItem[];
   route: Route;
+  /** Page to return to when the open settings or help page is closed via its header button. */
+  returnTo: Route | null;
   exam: ExamData | null;
   save: { state: 'idle' | 'saved' | 'error'; error: string };
   flash: Flash | null;
@@ -91,6 +93,7 @@ export const useStore = create<State>(() => ({
   settings: DEFAULT_SETTINGS,
   tree: [],
   route: { view: 'home' },
+  returnTo: null,
   exam: null,
   save: { state: 'idle', error: '' },
   flash: null,
@@ -190,6 +193,31 @@ export async function setSetting(key: SettingKey, value: string | null): Promise
 export function navigate(route: Route): void {
   set({ route });
   if (route.view !== 'exam') set({ exam: null });
+}
+
+/**
+ * Header buttons "Einstellungen" / "Hilfe": the first click opens the page, a second click
+ * returns to the page that was open before (exam, subject, class …).
+ */
+export async function toggleView(view: 'settings' | 'help'): Promise<void> {
+  const { route, returnTo, tree } = get();
+  if (route.view !== view) {
+    // Switching between settings and help keeps the original page to return to.
+    if (route.view !== 'settings' && route.view !== 'help') set({ returnTo: route });
+    navigate({ view });
+    return;
+  }
+  set({ returnTo: null });
+  const back = returnTo ?? { view: 'home' };
+  if (back.view === 'exam') {
+    if (!(await openExam(back.examId, { remember: false }))) navigate({ view: 'home' });
+    return;
+  }
+  // The class or subject may have been deleted meanwhile (e.g. "Alle Daten löschen").
+  const gone =
+    (back.view === 'class' && !tree.some((c) => c.id === back.classId)) ||
+    (back.view === 'course' && !tree.some((c) => c.courses.some((k) => k.id === back.courseId)));
+  navigate(gone ? { view: 'home' } : back);
 }
 
 export async function openExam(examId: number, opts: { remember?: boolean } = {}): Promise<boolean> {
@@ -381,6 +409,7 @@ export function hardReload(): void {
     settings: DEFAULT_SETTINGS,
     tree: [],
     route: { view: 'home' },
+    returnTo: null,
     exam: null,
     save: { state: 'idle', error: '' },
     flash: null,

@@ -107,6 +107,14 @@ test('complete workflow on an empty database', async () => {
   await page.getByRole('button', { name: 'Prüfung anlegen' }).click();
   await expect(cell(page, -2, 7)).toHaveText('8');
   await expect(page.getByTestId('crumb')).toHaveText('F-A11a › Biologie › Kurzarbeit 2 · 19.03.2025');
+  // settings and help: a second click on the pressed header button returns to the exam
+  await page.getByRole('button', { name: 'Einstellungen' }).click();
+  await expect(page.getByRole('heading', { name: 'Einstellungen', level: 1 })).toBeVisible();
+  await page.getByRole('button', { name: 'Hilfe' }).click();
+  await expect(page.getByRole('button', { name: 'Hilfe' })).toHaveAttribute('title', /zurück zur vorherigen Ansicht/);
+  await page.getByRole('button', { name: 'Hilfe' }).click();
+  await expect(page.getByTestId('crumb')).toHaveText('F-A11a › Biologie › Kurzarbeit 2 · 19.03.2025');
+  await expect(cell(page, -2, 7)).toHaveText('8');
   for (let c = 8; c < N_TASKS; c++) {
     await page.getByRole('button', { name: 'Aufgabe hinzufügen' }).click();
     await expect(cell(page, -2, c)).toBeVisible();

@@ -4,7 +4,7 @@ import { isExpired } from '@shared/schoolYear';
 import { Button } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { useMediaQuery, useTouchMode } from '../hooks';
-import { navigate, openExam, undoRedo, useStore, type Route } from '../store';
+import { navigate, openExam, toggleView, undoRedo, useStore, type Route } from '../store';
 import { DialogHost } from '../dialogs/DialogHost';
 import { ClassView } from './ClassView';
 import { CourseView } from './CourseView';
@@ -281,10 +281,22 @@ export function Shell(): React.JSX.Element {
           ))}
         </nav>
         <div className={s.spacer} />
-        <Button variant="quiet" icon="settings" pressed={route.view === 'settings'} onClick={() => navigate({ view: 'settings' })}>
+        <Button
+          variant="quiet"
+          icon="settings"
+          pressed={route.view === 'settings'}
+          tip={route.view === 'settings' ? 'Einstellungen schließen und zurück zur vorherigen Ansicht' : undefined}
+          onClick={() => void toggleView('settings')}
+        >
           Einstellungen
         </Button>
-        <Button variant="quiet" icon="question" pressed={route.view === 'help'} onClick={() => navigate({ view: 'help' })}>
+        <Button
+          variant="quiet"
+          icon="question"
+          pressed={route.view === 'help'}
+          tip={route.view === 'help' ? 'Hilfe schließen und zurück zur vorherigen Ansicht' : undefined}
+          onClick={() => void toggleView('help')}
+        >
           Hilfe
         </Button>
       </header>
