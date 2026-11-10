@@ -1,6 +1,7 @@
 /** zod schemas for every IPC payload. Main never trusts the renderer. */
 import { z } from 'zod';
 import type { ApiMethod } from '@shared/api';
+import { MAX_HALF_ERRORS } from '@shared/grading/errors';
 
 const id = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 const text = (max = 200): z.ZodString => z.string().max(max);
@@ -15,6 +16,7 @@ const password = z.string().min(8).max(1024);
 const anyPassword = z.string().min(1).max(1024);
 const entryMode = z.enum(['points', 'grade']);
 const weightC = z.number().int().min(1).max(10000);
+const rounding = z.enum(['half_up', 'half_favor', 'truncate']);
 const dir = z.string().min(1).max(1000);
 
 /** Settings value for 'categoryTemplate' (JSON string). */
@@ -41,7 +43,10 @@ export const SCHEMAS: Record<ApiMethod, z.ZodType> = {
         'defaultGradingSystem',
         'categoryTemplate',
         'defaultRounding',
+        'defaultShowFinal',
         'defaultRoundingDigits',
+        'defaultPointsWeightC',
+        'defaultErrorsWeightC',
       ]),
       value: z.string().max(5000).nullable(),
     })
@@ -63,8 +68,11 @@ export const SCHEMAS: Record<ApiMethod, z.ZodType> = {
     .object({
       id,
       gradingSystem: scheme.optional(),
-      finalRounding: z.enum(['none', 'half_up', 'half_favor']).optional(),
+      rounding: rounding.optional(),
+      showFinal: z.boolean().optional(),
       finalDigits: z.union([z.literal(0), z.literal(1)]).optional(),
+      pointsWeightC: weightC.optional(),
+      errorsWeightC: weightC.optional(),
     })
     .strict(),
   'categories.add': z.object({ courseId: id, name: text(40), weightC, defaultMode: entryMode }).strict(),
@@ -81,6 +89,12 @@ export const SCHEMAS: Record<ApiMethod, z.ZodType> = {
     .object({
       examId: id,
       changes: z.array(z.object({ studentId: id, qp: qp.nullable() }).strict()).min(1).max(5000),
+    })
+    .strict(),
+  'errors.set': z
+    .object({
+      examId: id,
+      changes: z.array(z.object({ studentId: id, halfErrors: z.number().int().min(0).max(MAX_HALF_ERRORS).nullable() }).strict()).min(1).max(5000),
     })
     .strict(),
   'output.overviewCsv': z.object({ courseId: id }).strict(),
@@ -114,6 +128,9 @@ export const SCHEMAS: Record<ApiMethod, z.ZodType> = {
       copyFromExamId: id.nullable(),
       categoryId: id.nullable(),
       entryMode,
+      errorGrading: z.boolean(),
+      perTask: z.boolean().optional(),
+      totalMaxQp: qp.optional(),
     })
     .strict(),
   'exams.update': z
@@ -128,6 +145,8 @@ export const SCHEMAS: Record<ApiMethod, z.ZodType> = {
           stepQp: step.optional(),
           notes: text(4000).optional(),
           categoryId: id.nullable().optional(),
+          errorGrading: z.boolean().optional(),
+          perTask: z.boolean().optional(),
         })
         .strict(),
     })

@@ -5,3 +5,4 @@ export * from './stats';
 export * from './keys';
 export * from './marks';
 export * from './overall';
+export * from './errors';

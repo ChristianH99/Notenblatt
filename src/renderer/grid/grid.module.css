@@ -315,3 +315,18 @@
   outline: 2px solid var(--c-accent);
   outline-offset: -2px;
 }
+
+/* Editable cells stay white; calculated cells (grades, word grades) are tinted. */
+.table td.editable {
+  background: var(--c-surface);
+}
+.table td.computed {
+  background: var(--c-computed);
+}
+/* Error grading: strong lines separate points | errors | exam grade; the error columns get their own header tint. */
+.groupStart {
+  border-left: 2px solid var(--c-group-line) !important;
+}
+.table thead th.errHead {
+  background: var(--c-err-head);
+}

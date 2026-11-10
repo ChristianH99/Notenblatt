@@ -2,7 +2,7 @@
  * Directly entered marks (exams with entry mode "grade", e.g. oral exams).
  * Values are integers: NP 0–15, or linear grade × 10 (10 … 60).
  */
-import type { ParticipationStatus, Scheme } from '../types';
+import type { ParticipationStatus, RoundingRule, Scheme } from '../types';
 import { linBand, linIsLow, VERBAL } from './lin6';
 import { npGroup, npIsLow } from './np15';
 import { computeStatsFromResults, type ExamStats } from './stats';
@@ -56,9 +56,10 @@ export function markVerbal(v: number, scheme: Scheme): string {
 }
 
 /** Statistics for a mark-only exam, in the same shape as for point exams. */
-export function computeMarkStats(scheme: Scheme, rows: { status: ParticipationStatus; value: number | null }[]): ExamStats {
+export function computeMarkStats(scheme: Scheme, rows: { status: ParticipationStatus; value: number | null }[], rounding: RoundingRule = 'truncate'): ExamStats {
   return computeStatsFromResults(
     scheme,
     rows.map((r) => ({ status: r.status, grade: r.status === 'present' ? r.value : null })),
+    rounding,
   );
 }

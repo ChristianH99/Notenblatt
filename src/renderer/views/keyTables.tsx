@@ -1,5 +1,7 @@
 /** Key table + key figures + chart, shared by the panel and the print view. */
-import { bandRange10, linIsLow, linKey, npGroupMembers, npIsLow, npKey } from '@shared/grading';
+import { hasErrorGrading } from '@shared/examModel';
+import { bandRange10, ERROR_GRADES10, formatErrors, linIsLow, linKey, npGroupMembers, npIsLow, npKey } from '@shared/grading';
+import { formatWeight } from '@shared/overview';
 import type { ExamStats } from '@shared/grading/stats';
 import { formatGrade10, formatHundredths, formatPctTenths, formatQp, formatTenths } from '@shared/parse/number';
 import type { ExamData } from '@shared/types';
@@ -50,6 +52,8 @@ export function KeyTable({ exam, stats }: { exam: ExamData; stats: ExamStats }):
     );
   }
   const rows = max > 0 ? linKey(max, step) : [];
+  // With error grading the key covers the points part only; the counts belong to the exam grade (chart).
+  const counts = !hasErrorGrading(exam);
   return (
     <table className={k.key} aria-label="Notenschlüssel" data-testid="key-table">
       <thead>
@@ -57,8 +61,8 @@ export function KeyTable({ exam, stats }: { exam: ExamData; stats: ExamStats }):
           <th>Note</th>
           <th className="num">Bereich</th>
           <th className="num">Punkte</th>
-          <th className="num">Anz.</th>
-          <th className="num">%</th>
+          {counts && <th className="num">Anz.</th>}
+          {counts && <th className="num">%</th>}
         </tr>
       </thead>
       <tbody>
@@ -72,10 +76,12 @@ export function KeyTable({ exam, stats }: { exam: ExamData; stats: ExamStats }):
                 {formatGrade10(a)}–{formatGrade10(b)}
               </td>
               <td className="num">{has ? `${formatQp(r.maxQp as number)}–${formatQp(r.minQp as number)}` : '–'}</td>
-              <td className="num" data-testid={`count-band-${r.band}`}>
-                {stats.participants ? stats.counts[r.band - 1] : ''}
-              </td>
-              <td className="num">{pct(stats.groupPctTenths[r.band - 1])}</td>
+              {counts && (
+                <td className="num" data-testid={`count-band-${r.band}`}>
+                  {stats.participants ? stats.counts[r.band - 1] : ''}
+                </td>
+              )}
+              {counts && <td className="num">{pct(stats.groupPctTenths[r.band - 1])}</td>}
             </tr>
           );
         })}
@@ -90,6 +96,18 @@ export function KeyFigures({ exam, stats }: { exam: ExamData; stats: ExamStats }
     <dl className={k.figures}>
       <dt>Durchschnitt</dt>
       <dd data-testid="fig-avg">{stats.gradeAvgHundredths === null ? '–' : `${formatHundredths(stats.gradeAvgHundredths)}${np ? ' NP' : ''}`}</dd>
+      {hasErrorGrading(exam) && (
+        <>
+          <dt>Ø Note Punkte</dt>
+          <dd data-testid="fig-avg-points">{stats.pointsGradeAvgHundredths === null ? '–' : formatHundredths(stats.pointsGradeAvgHundredths)}</dd>
+          <dt>Ø Note Fehler</dt>
+          <dd data-testid="fig-avg-errors">{stats.errorsGradeAvgHundredths === null ? '–' : formatHundredths(stats.errorsGradeAvgHundredths)}</dd>
+          <dt>Punkte : Fehler</dt>
+          <dd data-testid="fig-error-weights">
+            {formatWeight(exam.course.pointsWeightC)} : {formatWeight(exam.course.errorsWeightC)}
+          </dd>
+        </>
+      )}
       <dt>Note 5 und 6</dt>
       <dd data-testid="fig-low">{stats.lowPctTenths === null ? '–' : pct(stats.lowPctTenths)}</dd>
       <dt>mitgeschrieben</dt>
@@ -127,4 +145,27 @@ export function chartBars(exam: ExamData, stats: ExamStats): Bar[] {
 export function Chart({ exam, stats, width, mono }: { exam: ExamData; stats: ExamStats; width?: number; mono?: boolean }): React.JSX.Element {
   const np = exam.exam.scheme === 'NP15';
   return <DistChart bars={chartBars(exam, stats)} title={np ? 'Notenpunkteverteilung' : 'Notenverteilung'} width={width} mono={mono} />;
+}
+
+/** The fixed error table of error grading: errors in half steps (the last row: "ab 14") and grade. */
+export function ErrorKeyTable({ className }: { className?: string }): React.JSX.Element {
+  const last = ERROR_GRADES10.length - 1;
+  return (
+    <table className={className ?? k.key} aria-label="Fehlerschlüssel" data-testid="error-key">
+      <thead>
+        <tr>
+          <th className="num">Fehler</th>
+          <th className="num">Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        {ERROR_GRADES10.map((g, h) => (
+          <tr key={h}>
+            <td className="num">{h === last ? `ab ${formatErrors(h)}` : formatErrors(h)}</td>
+            <td className={`num ${linIsLow(g) ? k.low : ''}`}>{formatGrade10(g)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
 }

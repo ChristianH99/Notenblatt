@@ -6,11 +6,12 @@ export type ParticipationStatus = 'present' | 'absent';
 /** points = tasks with points (written); grade = the mark is entered directly (e.g. oral). */
 export type EntryMode = 'points' | 'grade';
 /**
- * Rounding of the final mark (Endnote) from the exact weighted average.
- * none = no final mark; half_up = from x,5 to the higher number ("kaufmännisch");
- * half_favor = at exactly x,5 to the better mark (for NP identical to half_up).
+ * Rounding rule of a course for its grade averages (to hundredths), the combined grade of an exam
+ * with error grading (to tenths) and the final mark (Endnote).
+ * half_up = from x,5 to the higher number ("kaufmännisch"); half_favor = at exactly x,5 to the
+ * better mark (for NP identical to half_up); truncate = cut off the further digits.
  */
-export type RoundingRule = 'none' | 'half_up' | 'half_favor';
+export type RoundingRule = 'half_up' | 'half_favor' | 'truncate';
 /** Final mark precision for grades 1–6: 0 = whole grade, 1 = one decimal. NP are always whole. */
 export type RoundingDigits = 0 | 1;
 
@@ -51,8 +52,13 @@ export interface Course {
   subject: string;
   /** Grading system of the course; all exams of the course use it. */
   gradingSystem: Scheme;
-  finalRounding: RoundingRule;
+  rounding: RoundingRule;
+  /** A final mark (Endnote) is shown. */
+  showFinal: boolean;
   finalDigits: RoundingDigits;
+  /** Error grading: weights of the points grade and the error grade, in hundredths (100 = 1). */
+  pointsWeightC: number;
+  errorsWeightC: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -81,6 +87,13 @@ export interface Exam {
   notes: string;
   categoryId: number | null;
   entryMode: EntryMode;
+  /** Points exam with an additional error count per student (grades 1–6 only). */
+  errorGrading: boolean;
+  /**
+   * Points exam: points per task (true) or only the total per student (false). A total-only
+   * exam has exactly one task ("Gesamt") that holds the total and its maximum.
+   */
+  perTask: boolean;
 }
 
 export interface Task {
@@ -114,6 +127,19 @@ export interface ExamData {
   marks: MarkEntry[];
   /** Directly entered sums (points exams): the task entries of these students are ignored. */
   totals: TotalEntry[];
+  /** Error counts (exams with error grading). */
+  errors: ErrorEntry[];
+}
+
+export interface ErrorEntry {
+  studentId: number;
+  /** Number of errors × 2 (half errors allowed). */
+  halfErrors: number;
+}
+
+export interface ErrorChange {
+  studentId: number;
+  halfErrors: number | null;
 }
 
 export interface TotalEntry {
@@ -203,7 +229,11 @@ export interface Settings {
   defaultGradingSystem: Scheme;
   categoryTemplate: CategoryTemplate[];
   defaultRounding: RoundingRule;
+  defaultShowFinal: boolean;
   defaultRoundingDigits: RoundingDigits;
+  /** Error grading: weights points : errors in hundredths. */
+  defaultPointsWeightC: number;
+  defaultErrorsWeightC: number;
 }
 
 export interface LockInfo {
@@ -260,6 +290,10 @@ export interface NewExamInput {
   copyFromExamId: number | null;
   categoryId: number | null;
   entryMode: EntryMode;
+  errorGrading: boolean;
+  /** Points exams: per task (default) or only the total, whose maximum is totalMaxQp. */
+  perTask?: boolean;
+  totalMaxQp?: number;
 }
 
 export interface ExamPatch {
@@ -270,6 +304,8 @@ export interface ExamPatch {
   stepQp?: StepQp;
   notes?: string;
   categoryId?: number | null;
+  errorGrading?: boolean;
+  perTask?: boolean;
 }
 
 export interface ScoreChange {

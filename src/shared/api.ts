@@ -5,6 +5,7 @@ import type {
   RoundingDigits,
   RoundingRule,
   TotalChange,
+  ErrorChange,
   MarkChange,
   OverviewData,
   Scheme,
@@ -39,7 +40,10 @@ export type SettingKey =
   | 'defaultGradingSystem'
   | 'categoryTemplate'
   | 'defaultRounding'
-  | 'defaultRoundingDigits';
+  | 'defaultShowFinal'
+  | 'defaultRoundingDigits'
+  | 'defaultPointsWeightC'
+  | 'defaultErrorsWeightC';
 
 export interface DirChoice {
   dir: string;
@@ -77,13 +81,22 @@ export interface ApiMethods {
   'courses.setMember': (a: { id: number; studentId: number; member: boolean }) => void;
   'courses.subjects': (a: void) => string[];
   'courses.overview': (a: { id: number }) => OverviewData;
-  'courses.updateGrading': (a: { id: number; gradingSystem?: Scheme; finalRounding?: RoundingRule; finalDigits?: RoundingDigits }) => void;
+  'courses.updateGrading': (a: {
+    id: number;
+    gradingSystem?: Scheme;
+    rounding?: RoundingRule;
+    showFinal?: boolean;
+    finalDigits?: RoundingDigits;
+    pointsWeightC?: number;
+    errorsWeightC?: number;
+  }) => void;
   'categories.add': (a: { courseId: number; name: string; weightC: number; defaultMode: EntryMode }) => number;
   'categories.update': (a: { id: number; name?: string; weightC?: number; defaultMode?: EntryMode }) => void;
   'categories.move': (a: { id: number; position: number }) => void;
   'categories.delete': (a: { id: number }) => void;
   'marks.set': (a: { examId: number; changes: MarkChange[] }) => ExamData;
   'totals.set': (a: { examId: number; changes: TotalChange[] }) => ExamData;
+  'errors.set': (a: { examId: number; changes: ErrorChange[] }) => ExamData;
   'output.overviewCsv': (a: { courseId: number }) => string | null;
   'storage.info': (a: void) => StorageInfo;
   'storage.chooseDir': (a: void) => DirChoice | null;

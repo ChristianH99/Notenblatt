@@ -103,6 +103,7 @@ test('complete workflow on an empty database', async () => {
   await page.locator('#ex-kind').fill('Kurzarbeit');
   await page.locator('#ex-nr').fill('2.');
   await page.locator('#ex-date').fill('19.03.2025');
+  await page.locator('#ex-pertask').check();
   await page.locator('#ex-count').fill('8');
   await page.getByRole('button', { name: 'Prüfung anlegen' }).click();
   await expect(cell(page, -2, 7)).toHaveText('8');
@@ -171,7 +172,14 @@ test('complete workflow on an empty database', async () => {
     await expect(page.locator(`#res-${Number(nr) - 1}`)).toHaveText(exp[2]);
   }
   const panel = page.getByTestId('panel');
+  // The exact average 4,517… is rounded by the subject's rule: truncated (default, as in the workbook) 4,51; kaufmännisch 4,52.
   await expect(panel.getByTestId('fig-avg')).toHaveText('4,51');
+  await page.getByTestId('crumb').getByRole('button', { name: 'Biologie' }).click();
+  await page.getByRole('tab', { name: 'Gewichtung' }).click();
+  await page.locator('#cls-rounding').selectOption('half_up');
+  await expect(page.locator('#cls-rounding')).toHaveValue('half_up');
+  await navClick(page, 'Kurzarbeit 2 · 19.03.2025');
+  await expect(panel.getByTestId('fig-avg')).toHaveText('4,52');
   await expect(panel.getByTestId('fig-low')).toHaveText('58,8 %');
   await expect(panel.getByTestId('count-band-5')).toHaveText('10');
   await expect(panel.getByTestId('count-band-4')).toHaveText('7');

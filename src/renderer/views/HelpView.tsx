@@ -1,3 +1,5 @@
+import { ERROR_GRADES10, errorGrade10 } from '@shared/grading/errors';
+import { formatGrade10 } from '@shared/parse/number';
 import s from './shell.module.css';
 
 function K({ children }: { children: string }): React.JSX.Element {
@@ -17,8 +19,14 @@ export function HelpView(): React.JSX.Element {
             Fach anlegen: In der Klasse jedes Fach anlegen, das Sie dort unterrichten (z. B. „Mathematik“ und „Physik“). Alle Schüler/innen der Klasse nehmen
             zunächst teil; unter „Prüfungen und Schüler/innen“ können Sie Einzelne abwählen, z. B. bei Wahlfächern.
           </li>
-          <li>Prüfung anlegen: Fach, Art, Datum, Bewertung und Anzahl der Aufgaben wählen.</li>
-          <li>In der Tabelle zuerst die Zeile „max. Punkte“ ausfüllen, dann die erreichten Punkte eintragen. Summe, Note und Auswertung werden sofort berechnet.</li>
+          <li>
+            Prüfung anlegen: Fach, Art und Datum wählen. Bei Prüfungen mit Punkten entweder nur die Höchstpunktzahl angeben (je Schüler/in wird dann nur die
+            Gesamtpunktzahl eingetragen) oder „Punkte je Aufgabe eingeben“ ankreuzen und die Anzahl der Aufgaben wählen.
+          </li>
+          <li>
+            In der Tabelle die erreichten Punkte eintragen (bei Aufgaben zuerst die Zeile „max. Punkte“ ausfüllen). Weiße Zellen sind Eingaben, grau hinterlegte
+            werden berechnet. Summe, Note und Auswertung erscheinen sofort.
+          </li>
         </ol>
         <p>Alle Eingaben werden sofort gespeichert. Es gibt keine Schaltfläche „Speichern“.</p>
 
@@ -43,10 +51,53 @@ export function HelpView(): React.JSX.Element {
         </p>
         <p>Alle Berechnungen erfolgen exakt mit ganzen Zahlen, Rundungsfehler wie in Tabellenkalkulationen treten nicht auf.</p>
 
+        <h2>Fehlerbewertung</h2>
+        <p>
+          In Fächern mit Noten 1–6 kann eine Prüfung mit Punkten zusätzlich die <b>Anzahl der Fehler</b> erfassen (Häkchen „Fehlerbewertung“ beim Anlegen
+          oder im Kopf der Prüfung). Die Tabelle erhält dann die Spalte „Fehler“ (halbe Fehler möglich, z. B. 3,5) sowie die Teilnoten „Note P.“ (aus den
+          Punkten) und „Note F.“ (aus den Fehlern). Die Note der Prüfung ist der gewichtete Mittelwert beider Teilnoten, auf eine Nachkommastelle gerundet nach
+          der Rundung des Fachs; nur sie erscheint in der Notenübersicht. Das Verhältnis Punkte : Fehler (Standard 1 : 1) legen Sie je Fach unter „Gewichtung“
+          fest.
+        </p>
+        <p>
+          Bis 9 Fehler kostet jeder Fehler 0,3 Noten, ab dem 10. Fehler 0,5 Noten. Ein halber Fehler kostet die Hälfte davon, auf eine Nachkommastelle
+          abgeschnitten (z. B. 3,5 Fehler: 1,9 + 0,15 → 2,0):
+        </p>
+        <table className={s.helpTable}>
+          <thead>
+            <tr>
+              <th>Fehler</th>
+              {ERROR_GRADES10.filter((_, i) => i % 2 === 0).map((_, i) => (
+                <th key={i}>{i}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>Note</th>
+              {ERROR_GRADES10.filter((_, i) => i % 2 === 0).map((g, i) => (
+                <td key={i}>{formatGrade10(g)}</td>
+              ))}
+            </tr>
+            <tr>
+              <th>+ 0,5 F.</th>
+              {ERROR_GRADES10.filter((_, i) => i % 2 === 0).map((_, i) => (
+                <td key={i}>{formatGrade10(errorGrade10(2 * i + 1))}</td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          Ab 14 Fehlern ergibt sich 6,0. Beispiel: Note aus den Punkten 2,3, 4 Fehler (2,2), Verhältnis 1 : 1 → (2,3 + 2,2) / 2 = 2,25 → abgeschnitten <b>2,2</b>
+          (kaufmännisch 2,3). „Vollständigen Schlüssel anzeigen“ zeigt neben dem Punkteschlüssel auch den Fehlerschlüssel.
+          Eine Zeile wird erst gewertet, wenn Punkte und Fehler eingetragen sind.
+        </p>
+
         <h2>Auswertung</h2>
         <p>
           Gewertet werden nur Schüler/innen mit Status „teilgenommen“ und mindestens einem Eintrag. Leere Zellen zählen in einer begonnenen Zeile als 0 Punkte; die Summe
-          erhält dann eine gelbe Markierung. Durchschnitte werden abgeschnitten (nicht gerundet), wie in der Excel-Vorlage.
+          erhält dann eine gelbe Markierung. Durchschnitte werden auf zwei Nachkommastellen nach der Rundung des Fachs angezeigt (kaufmännisch, zugunsten der
+          Schülerin bzw. des Schülers oder abgeschnitten).
         </p>
 
         <h2>Mündliche Noten, Kategorien und Gesamtdurchschnitt</h2>
@@ -58,19 +109,21 @@ export function HelpView(): React.JSX.Element {
         <p>
           Die <b>Notenübersicht</b> des Fachs zeigt alle Noten jeder Schülerin bzw. jedes Schülers, den Durchschnitt je Kategorie, den gewichteten
           Gesamtdurchschnitt und die Endnote. Jede Prüfung zählt mit dem Gewicht ihrer Kategorie: Beispiel schriftlich 15 NP (×3), mündlich 9 und 13 NP (je ×1)
-          → (3 · 15 + 9 + 13) / 5 = 13,40. Durchschnitte werden auf zwei Nachkommastellen abgeschnitten angezeigt.
+          → (3 · 15 + 9 + 13) / 5 = 13,40.
         </p>
         <p>
-          Die <b>Endnote</b> wird aus dem exakten Durchschnitt gerundet – je Fach wählbar: kaufmännisch (ab x,5 zur höheren Zahl) oder bei genau x,5 zugunsten
-          der Schülerin bzw. des Schülers (bei Noten 1–6 also 2,5 → 2), wahlweise auf ganze Noten oder eine Nachkommastelle. Bei Notenpunkten wird x,5 immer
-          aufgerundet.
+          Die <b>Rundung</b> ist je Fach wählbar und gilt für die Durchschnitte (zwei Nachkommastellen), die Note von Prüfungen mit Fehlerbewertung und die
+          Endnote: kaufmännisch (ab x,5 zur höheren Zahl), bei genau x,5 zugunsten der Schülerin bzw. des Schülers (bei Noten 1–6 also 2,5 → 2) oder
+          abgeschnitten. Gerundet wird immer aus dem exakten Wert. Die <b>Endnote</b> kann auf ganze Noten oder eine Nachkommastelle gerundet oder ganz
+          ausgeblendet werden. Bei Notenpunkten wird x,5 bei beiden Rundungsregeln aufgerundet.
         </p>
         <p>
           Notensystem (Notenpunkte oder Noten 1–6), Rundung, Gewichte und Kategorien legen Sie je Fach unter „Gewichtung“ fest; alle Prüfungen des Fachs
           verwenden dieses Notensystem. Die Vorlage in den Einstellungen gilt nur für neu angelegte Fächer – bereits bestehende Fächer ändern sich dadurch nicht.
         </p>
         <p>
-          <b>Nur die Gesamtpunktzahl bekannt?</b> Tragen Sie die Punkte direkt in die Zelle „Summe“ ein. Die Aufgabenzellen dieser Zeile werden dann grau und
+          <b>Nur die Gesamtpunktzahl erfassen?</b> Schalten Sie „Punkte je Aufgabe“ aus (beim Anlegen oder im Kopf der Prüfung, solange es nur eine Aufgabe
+          gibt): Die Tabelle hat dann nur die Spalte „Punkte“. <b>Bei einzelnen Schüler/innen nur die Summe bekannt?</b> Tragen Sie die Punkte direkt in die Zelle „Summe“ ein. Die Aufgabenzellen dieser Zeile werden dann grau und
           gesperrt; erst wenn Sie die Summe wieder leeren (Entf), können die Aufgaben wieder bearbeitet werden.
         </p>
 

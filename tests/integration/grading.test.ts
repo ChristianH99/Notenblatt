@@ -29,7 +29,7 @@ afterEach(() => {
 
 const exam = (courseId: number, over: Partial<NewExamInput> = {}): NewExamInput => ({
   courseId, kind: 'Schulaufgabe', number: '1', examDate: '2025-10-01', teacher: '',
-  stepQp: 2, taskCount: 1, copyFromExamId: null, categoryId: null, entryMode: 'points', ...over,
+  stepQp: 2, taskCount: 1, copyFromExamId: null, categoryId: null, entryMode: 'points', errorGrading: false, ...over,
 });
 
 /** A class with one subject ("Deutsch"): cls = class id (students), c = course id (exams, grading). */
@@ -108,12 +108,12 @@ describe('categories', () => {
     const { cls: a, c } = mk('A');
     const physik = repo.createCourse(a, 'Physik');
     repo.updateCategory(repo.categories(c)[0]!.id, { weightC: 250 });
-    repo.updateCourseGrading(c, { gradingSystem: 'LIN6', finalRounding: 'half_favor', finalDigits: 1 });
+    repo.updateCourseGrading(c, { gradingSystem: 'LIN6', rounding: 'half_favor', finalDigits: 1, errorsWeightC: 200 });
     const b = repo.copyClass(a, 'A2', '2026/27');
     const [deutsch, physik2] = repo.courses(b);
-    expect(deutsch).toMatchObject({ subject: 'Deutsch', gradingSystem: 'LIN6', finalRounding: 'half_favor', finalDigits: 1 });
+    expect(deutsch).toMatchObject({ subject: 'Deutsch', gradingSystem: 'LIN6', rounding: 'half_favor', finalDigits: 1, errorsWeightC: 200 });
     expect(repo.categories(deutsch!.id).map((x) => x.weightC)).toEqual([250, 100]);
-    expect(physik2).toMatchObject({ subject: 'Physik', gradingSystem: repo.getCourse(physik).gradingSystem, finalRounding: 'half_up' });
+    expect(physik2).toMatchObject({ subject: 'Physik', gradingSystem: repo.getCourse(physik).gradingSystem, rounding: 'truncate', errorsWeightC: 100 });
     expect(repo.categories(physik2!.id).map((x) => x.weightC)).toEqual([300, 100]);
   });
 
@@ -123,10 +123,12 @@ describe('categories', () => {
     expect(parseCategoryTemplate(JSON.stringify([{ name: 'x', weightC: 0, defaultMode: 'points' }]))[0]?.name).toBe('Schriftlich');
     expect(parseCategoryTemplate(JSON.stringify([{ name: 'x', weightC: 5, defaultMode: 'oral' }]))[0]?.name).toBe('Schriftlich');
     expect(parseCategoryTemplate(JSON.stringify([{ name: 'x', weightC: 5, defaultMode: 'grade' }]))).toEqual([{ name: 'x', weightC: 5, defaultMode: 'grade' }]);
-    expect(repo.getCourse(mk('X').c)).toMatchObject({ finalRounding: 'half_up', finalDigits: 0 });
-    repo.setSetting('defaultRounding', 'none');
+    expect(repo.getCourse(mk('X').c)).toMatchObject({ rounding: 'truncate', showFinal: true, finalDigits: 0 });
+    repo.setSetting('defaultRounding', 'truncate');
+    repo.setSetting('defaultShowFinal', '0');
+    repo.setSetting('defaultPointsWeightC', '200');
     repo.setSetting('defaultRoundingDigits', '1');
-    expect(repo.getCourse(mk('Y').c)).toMatchObject({ finalRounding: 'none', finalDigits: 1 });
+    expect(repo.getCourse(mk('Y').c)).toMatchObject({ rounding: 'truncate', showFinal: false, finalDigits: 1, pointsWeightC: 200, errorsWeightC: 100 });
   });
 });
 
@@ -146,7 +148,7 @@ describe('grading system per course', () => {
     repo.setMarks(o, [{ studentId: s1!, value: 23 }]);
     expect(() => repo.updateCourseGrading(c, { gradingSystem: 'NP15' })).toThrow(/„Abfrage 1 · Deutsch · 01\.10\.2025“ sind bereits Noten/);
     expect(repo.getCourse(c).gradingSystem).toBe('LIN6');
-    repo.updateCourseGrading(c, { gradingSystem: 'LIN6', finalRounding: 'none' }); // unchanged system is fine
+    repo.updateCourseGrading(c, { gradingSystem: 'LIN6', showFinal: false }); // unchanged system is fine
     repo.setMarks(o, [{ studentId: s1!, value: null }]);
     repo.updateCourseGrading(c, { gradingSystem: 'NP15' });
     expect(repo.getExamData(o).exam.scheme).toBe('NP15');
@@ -178,7 +180,7 @@ describe('grading system per course', () => {
       { id: 2, scheme: 'LIN6' },
       { id: 3, scheme: 'NP15' },
     ]);
-    expect(m.prepare('SELECT final_rounding, final_digits FROM course WHERE class_id = 1').get()).toEqual({ final_rounding: 'half_up', final_digits: 0 });
+    expect(m.prepare('SELECT rounding, show_final, final_digits FROM course WHERE class_id = 1').get()).toEqual({ rounding: 'half_up', show_final: 1, final_digits: 0 });
     expect(() => m.prepare('SELECT avg_method FROM school_class').get()).toThrow();
     expect(m.prepare('SELECT value FROM mark').all()).toEqual([{ value: 23 }]);
     m.close();
@@ -256,10 +258,182 @@ describe('overview', () => {
     // weight change in the course changes the result: oral ×3 → Albers (45 + 27 + 36)/9 = 12
     repo.updateCategory(oral!.id, { weightC: 300 });
     expect(formatAvg(buildOverview(repo.overview(c)).rows[0]!.avg.overallHundredths)).toBe('12,00');
-    // rounding "none" hides the final mark
-    repo.updateCourseGrading(c, { finalRounding: 'none' });
+    // without a final mark the column is hidden
+    repo.updateCourseGrading(c, { showFinal: false });
     const none = buildOverview(repo.overview(c));
     expect(none.showFinal).toBe(false);
     expect(none.rows[0]!.finalText).toBe('');
+  });
+});
+
+describe('error grading', () => {
+  /** A subject graded 1–6 with two students and a points exam (one task, 20 points) with error grading. */
+  function setupErrors(): { cls: number; c: number; e: number; s: number[] } {
+    const { cls, c } = mk('9b', 'Englisch');
+    repo.updateCourseGrading(c, { gradingSystem: 'LIN6' });
+    const s = repo.addStudents(cls, [
+      { lastName: 'Albers', firstName: 'A' },
+      { lastName: 'Brandt', firstName: 'B' },
+    ]);
+    const e = repo.createExam(exam(c, { errorGrading: true }));
+    repo.updateTask(repo.tasks(e)[0]!.id, { maxQp: 80 });
+    return { cls, c, e, s };
+  }
+
+  it('is only possible for points exams in subjects graded 1–6', () => {
+    const { c: np } = mk('A');
+    expect(() => repo.createExam(exam(np, { errorGrading: true }))).toThrow(/nur bei Noten 1–6/);
+    const plain = repo.createExam(exam(np));
+    expect(() => repo.updateExam(plain, { errorGrading: true })).toThrow(/nur bei Noten 1–6/);
+    repo.updateCourseGrading(np, { gradingSystem: 'LIN6' });
+    const oral = repo.createExam(exam(np, { entryMode: 'grade', errorGrading: true }));
+    expect(repo.getExamData(oral).exam.errorGrading).toBe(false);
+    expect(() => repo.updateExam(oral, { errorGrading: true })).toThrow(/Prüfungen mit Punkten/);
+    repo.updateExam(plain, { errorGrading: true });
+    expect(repo.getExamData(plain).exam.errorGrading).toBe(true);
+    expect(() => repo.setErrors(oral, [])).toThrow(/ohne Fehlerbewertung/);
+  });
+
+  it('stores error counts, validates them and gives the combined grade in the overview', () => {
+    const { c, e, s } = setupErrors();
+    const [a, b] = s as [number, number];
+    const t = repo.tasks(e)[0]!.id;
+    repo.setScores(e, [
+      { taskId: t, studentId: a, qp: 52 },
+      { taskId: t, studentId: b, qp: 40 },
+    ]);
+    repo.setErrors(e, [{ studentId: a, halfErrors: 8 }]);
+    expect(repo.getExamData(e).errors).toEqual([{ studentId: a, halfErrors: 8 }]);
+    expect(() => repo.setErrors(e, [{ studentId: a, halfErrors: -1 }])).toThrow(UserError);
+    expect(() => repo.setErrors(e, [{ studentId: a, halfErrors: 2000 }])).toThrow(/999,5/);
+    repo.setParticipation(e, b, 'absent');
+    expect(() => repo.setErrors(e, [{ studentId: b, halfErrors: 2 }])).toThrow(/fehlende/);
+    repo.setParticipation(e, b, 'present');
+    // Albers: points 2,7, 4 errors 2,2 → 2,45 → truncated (default) 2,4. Brandt has no errors yet → no result in the overview.
+    const o = buildOverview(repo.overview(c));
+    expect(o.rows.map((r) => r.cells[0]!.text)).toEqual(['2,4', '']);
+    // Points : errors = 3 : 1 → (3·2,7 + 2,2) / 4 = 2,575 → kaufmännisch 2,6, abgeschnitten 2,5
+    repo.updateCourseGrading(c, { pointsWeightC: 300, rounding: 'half_up' });
+    expect(buildOverview(repo.overview(c)).rows[0]!.cells[0]!.text).toBe('2,6');
+    repo.updateCourseGrading(c, { rounding: 'truncate' });
+    expect(buildOverview(repo.overview(c)).rows[0]!.cells[0]!.text).toBe('2,5');
+    expect(() => repo.updateCourseGrading(c, { errorsWeightC: 0 })).toThrow(/0,01 und 100/);
+    repo.setErrors(e, [{ studentId: a, halfErrors: null }]);
+    expect(repo.getExamData(e).errors).toEqual([]);
+  });
+
+  it('keeps the subject on grades 1–6 and protects entered errors', () => {
+    const { cls, c, e, s } = setupErrors();
+    const a = s[0]!;
+    expect(() => repo.updateCourseGrading(c, { gradingSystem: 'NP15' })).toThrow(/„Schulaufgabe 1 · Englisch · 01\.10\.2025“ verwendet die Fehlerbewertung/);
+    repo.setErrors(e, [{ studentId: a, halfErrors: 4 }]);
+    expect(() => repo.updateExam(e, { errorGrading: false })).toThrow(/bereits Fehler/);
+    expect(() => repo.setCourseMember(c, a, false)).toThrow(/bereits Ergebnisse/);
+    expect(repo.classDeletionInfo(cls).scores).toBe(1);
+    expect(repo.courseDeletionInfo(c).scores).toBe(1);
+    expect(repo.studentDeletionInfo([a])).toMatchObject({ scores: 1, exams: 1 });
+    // duplicating keeps the error grading (without the entries)
+    const d = repo.duplicateExam(e);
+    expect(repo.getExamData(d)).toMatchObject({ exam: { errorGrading: true }, errors: [] });
+    repo.setErrors(e, [{ studentId: a, halfErrors: null }]);
+    repo.updateExam(e, { errorGrading: false });
+    repo.updateExam(d, { errorGrading: false });
+    repo.updateCourseGrading(c, { gradingSystem: 'NP15' });
+    expect(repo.getCourse(c).gradingSystem).toBe('NP15');
+  });
+
+  it('deleting a student removes the error counts', () => {
+    const { e, s } = setupErrors();
+    repo.setErrors(e, [{ studentId: s[0]!, halfErrors: 4 }]);
+    repo.deleteStudents([s[0]!]);
+    expect(repo.db.prepare('SELECT COUNT(*) n FROM error_count').get()).toEqual({ n: 0 });
+  });
+
+  it('new subjects take rounding, final mark and error weights from the settings; copies keep them', () => {
+    repo.setSetting('defaultRounding', 'half_favor');
+    repo.setSetting('defaultErrorsWeightC', '50');
+    const { cls, c } = mk('7a');
+    expect(repo.getCourse(c)).toMatchObject({ rounding: 'half_favor', showFinal: true, pointsWeightC: 100, errorsWeightC: 50 });
+    // changing the template later does not change existing subjects
+    repo.setSetting('defaultErrorsWeightC', '300');
+    expect(repo.getCourse(c).errorsWeightC).toBe(50);
+    const copy = repo.copyClass(cls, '8a', '2026/27');
+    expect(repo.courses(copy)[0]).toMatchObject({ rounding: 'half_favor', errorsWeightC: 50 });
+    // invalid stored values fall back to the defaults
+    repo.setSetting('defaultPointsWeightC', 'x');
+    expect(repo.getSettings().defaultPointsWeightC).toBe(100);
+  });
+});
+
+describe('migration to schema version 5', () => {
+  it('turns the rounding "none" into "no final mark" and adds error grading switched off', () => {
+    const f = path.join(dir, 'v4.db');
+    const db = new Database(f);
+    db.pragma('foreign_keys = ON');
+    db.exec(MIGRATIONS[0] as string);
+    for (const m of MIGRATIONS.slice(1, 4)) (m as (x: Database.Database) => void)(db);
+    db.pragma('user_version = 4');
+    db.exec(`
+      INSERT INTO school_class(id, name, school_year) VALUES (1, '10a', '2024/25');
+      INSERT INTO course(id, class_id, subject, grading_system, final_rounding, final_digits) VALUES
+        (1, 1, 'Mathe', 'LIN6', 'none', 1), (2, 1, 'Physik', 'LIN6', 'half_favor', 0), (3, 1, 'Chemie', 'NP15', 'half_up', 0);
+      INSERT INTO exam(id, course_id, kind, exam_date, scheme) VALUES (1, 1, 'Test', '2025-01-01', 'LIN6');
+    `);
+    db.close();
+    const m = openDatabase(f);
+    expect(m.prepare('SELECT id, rounding, show_final, final_digits, points_weight_c, errors_weight_c FROM course ORDER BY id').all()).toEqual([
+      { id: 1, rounding: 'truncate', show_final: 0, final_digits: 1, points_weight_c: 100, errors_weight_c: 100 },
+      { id: 2, rounding: 'half_favor', show_final: 1, final_digits: 0, points_weight_c: 100, errors_weight_c: 100 },
+      { id: 3, rounding: 'half_up', show_final: 1, final_digits: 0, points_weight_c: 100, errors_weight_c: 100 },
+    ]);
+    expect(m.prepare('SELECT error_grading FROM exam').get()).toEqual({ error_grading: 0 });
+    expect(() => m.prepare('SELECT final_rounding FROM course').get()).toThrow();
+    m.close();
+  });
+
+  it('reads an old "no final mark" template setting', () => {
+    repo.setSetting('defaultRounding', 'none');
+    expect(repo.getSettings()).toMatchObject({ defaultRounding: 'truncate', defaultShowFinal: false });
+    repo.setSetting('defaultShowFinal', '1');
+    expect(repo.getSettings().defaultShowFinal).toBe(true);
+  });
+});
+
+describe('total-only exams (no points per task)', () => {
+  it('have one task "Gesamt" holding the maximum; tasks can only be added after switching to points per task', () => {
+    const { cls, c } = mk('6a');
+    const [a] = repo.addStudents(cls, [{ lastName: 'Albers', firstName: 'A' }]);
+    expect(() => repo.createExam(exam(c, { perTask: false }))).toThrow(/Höchstpunktzahl/);
+    expect(() => repo.createExam(exam(c, { perTask: false, totalMaxQp: 41, stepQp: 2 }))).toThrow(/Schritte von 0,5/);
+    const e = repo.createExam(exam(c, { perTask: false, totalMaxQp: 120 }));
+    const d = repo.getExamData(e);
+    expect(d.exam.perTask).toBe(false);
+    expect(d.tasks.map((t) => [t.label, t.maxQp])).toEqual([['Gesamt', 120]]);
+    repo.setScores(e, [{ taskId: d.tasks[0]!.id, studentId: a!, qp: 100 }]);
+    expect(buildOverview(repo.overview(c)).rows[0]!.cells[0]!.text).toBe('12'); // 25 of 30 points in a Notenpunkte subject
+    expect(() => repo.addTask(e, 1)).toThrow(/nur die Gesamtpunktzahl/);
+    // duplicating keeps the mode and the maximum
+    const dup = repo.getExamData(repo.duplicateExam(e));
+    expect(dup.exam.perTask).toBe(false);
+    expect(dup.tasks.map((t) => t.maxQp)).toEqual([120]);
+    // switching to points per task keeps the entries; switching back needs a single task
+    repo.updateExam(e, { perTask: true });
+    // the total becomes an ordinary first task "1" (not "Gesamt"); max and entries stay
+    expect(repo.tasks(e).map((t) => [t.label, t.maxQp])).toEqual([['1', 120]]);
+    expect(repo.getExamData(e).scores).toHaveLength(1);
+    repo.addTask(e, 1);
+    expect(repo.tasks(e).map((t) => t.label)).toEqual(['1', '2']);
+    expect(() => repo.updateExam(e, { perTask: false })).toThrow(/genau einer Aufgabe/);
+    repo.deleteTask(repo.tasks(e)[1]!.id);
+    repo.setTotals(e, [{ studentId: a!, qp: 80 }]);
+    expect(() => repo.updateExam(e, { perTask: false })).toThrow(/Summen direkt eingetragen/);
+    repo.setTotals(e, [{ studentId: a!, qp: null }]);
+    repo.updateExam(e, { perTask: false });
+    expect(repo.getExamData(e).scores).toHaveLength(1);
+  });
+
+  it('default to points per task when the field is left out', () => {
+    const { c } = mk('6b');
+    expect(repo.getExamData(repo.createExam(exam(c))).exam.perTask).toBe(true);
   });
 });

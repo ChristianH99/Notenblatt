@@ -163,10 +163,10 @@ function goldenExamData(): ExamData {
   return {
     exam: {
       id: 1, courseId: 1, classId: 1, kind: 'Kurzarbeit', number: '2.', subject: 'Biologie', examDate: '2025-03-19',
-      teacher: '', scheme: 'NP15', stepQp: 2, notes: '', categoryId: null, entryMode: 'points',
+      teacher: '', scheme: 'NP15', stepQp: 2, notes: '', categoryId: null, entryMode: 'points', errorGrading: false, perTask: true,
     },
     schoolClass: { id: 1, name: 'F-A11a', schoolYear: '2024/25', createdAt: '', updatedAt: '' },
-    course: { id: 1, classId: 1, subject: 'Biologie', gradingSystem: 'NP15', finalRounding: 'half_up', finalDigits: 0, createdAt: '', updatedAt: '' },
+    course: { id: 1, classId: 1, subject: 'Biologie', gradingSystem: 'NP15', rounding: 'truncate', showFinal: true, finalDigits: 0, pointsWeightC: 100, errorsWeightC: 100, createdAt: '', updatedAt: '' },
     tasks: GOLDEN_LABELS.slice(0, 3).map((label, i) => ({ id: i + 1, examId: 1, position: i, label, maxQp: (GOLDEN_MAX[i] as number) * 4 })),
     students: [
       { id: 1, classId: 1, lastName: 'Müller', firstName: 'Anna', nr: 1, status: 'present' },
@@ -175,6 +175,7 @@ function goldenExamData(): ExamData {
     ],
     marks: [],
     totals: [],
+    errors: [],
     scores: [
       { taskId: 1, studentId: 1, qp: 14 },
       { taskId: 2, studentId: 1, qp: 6 },

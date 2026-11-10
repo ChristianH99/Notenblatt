@@ -117,7 +117,7 @@ describe('final mark rounding', () => {
     expect(finalMark('NP15', f(949, 100), 'half_up', 0)).toBe(9);
     expect(finalMark('NP15', f(15), 'half_up', 1)).toBe(15);
     expect(finalMark('NP15', null, 'half_up', 0)).toBeNull();
-    expect(finalMark('NP15', f(9), 'none', 0)).toBeNull();
+    expect(finalMark('NP15', f(99, 10), 'truncate', 0)).toBe(9);
     expect(formatFinalMark('NP15', 10, 0)).toBe('10');
   });
   it('grades 1–6, whole grade: half up vs. favouring the student at x,5', () => {
@@ -180,7 +180,7 @@ describe('weights', () => {
 });
 
 const cls: SchoolClass = { id: 1, name: '10a', schoolYear: '2025/26', createdAt: '', updatedAt: '' };
-const course: Course = { id: 7, classId: 1, subject: 'Mathe', gradingSystem: 'NP15', finalRounding: 'half_up', finalDigits: 0, createdAt: '', updatedAt: '' };
+const course: Course = { id: 7, classId: 1, subject: 'Mathe', gradingSystem: 'NP15', rounding: 'half_up', showFinal: true, finalDigits: 0, pointsWeightC: 100, errorsWeightC: 100, createdAt: '', updatedAt: '' };
 const cats: GradeCategory[] = [
   { id: 2, courseId: 7, name: 'Mündlich', weightC: 100, defaultMode: 'grade', position: 1 },
   { id: 1, courseId: 7, name: 'Schriftlich', weightC: 300, defaultMode: 'points', position: 0 },
@@ -191,7 +191,7 @@ const students = [
 ];
 const baseExam = (over: Partial<Exam>): Exam => ({
   id: 1, courseId: 7, classId: 1, kind: 'Ex', number: '', subject: 'Mathe', examDate: '2025-10-01', teacher: '', scheme: 'NP15', stepQp: 2, notes: '',
-  categoryId: 1, entryMode: 'points', ...over,
+  categoryId: 1, entryMode: 'points', errorGrading: false, perTask: true, ...over,
 });
 const es = (over: Partial<ExamData> & { exam: Exam }): ExamData => ({
   schoolClass: cls,
@@ -204,6 +204,7 @@ const es = (over: Partial<ExamData> & { exam: Exam }): ExamData => ({
   scores: [],
   marks: [],
   totals: [],
+  errors: [],
   ...over,
 });
 

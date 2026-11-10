@@ -1,7 +1,8 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Course } from '@shared/types';
 import { call } from '../api';
-import { Button, Dialog, Field, TextInput } from '../components/ui';
+import { ComboBox } from '../components/ComboBox';
+import { Button, Dialog, Field } from '../components/ui';
 import { navigate, refreshTree, save, saveOk, useStore } from '../store';
 
 /** "Neues Fach" and "Fach umbenennen" (a subject taught in one class). */
@@ -10,7 +11,6 @@ export function CourseDialog({ mode, classId, source, onClose }: { mode: 'create
   const [subject, setSubject] = useState(mode === 'rename' ? (source?.subject ?? '') : '');
   const [subjects, setSubjects] = useState<string[]>([]);
   const [tried, setTried] = useState(false);
-  const listId = useId();
   const err = tried && !subject.trim() ? 'Bitte ein Fach angeben.' : undefined;
 
   useEffect(() => {
@@ -55,14 +55,15 @@ export function CourseDialog({ mode, classId, source, onClose }: { mode: 'create
         </p>
       )}
       <Field label="Fach" htmlFor="course-subject" error={err}>
-        <TextInput id="course-subject" autoFocus list={listId} value={subject} placeholder="z. B. Mathematik" onChange={(e) => setSubject(e.target.value)} invalid={!!err} />
-        <datalist id={listId}>
-          {subjects
-            .filter((x) => !taken.has(x.toLowerCase()))
-            .map((x) => (
-              <option key={x} value={x} />
-            ))}
-        </datalist>
+        <ComboBox
+          id="course-subject"
+          autoFocus
+          value={subject}
+          placeholder="z. B. Mathematik"
+          options={subjects.filter((x) => !taken.has(x.toLowerCase()))}
+          onChange={setSubject}
+          invalid={!!err}
+        />
       </Field>
     </Dialog>
   );
