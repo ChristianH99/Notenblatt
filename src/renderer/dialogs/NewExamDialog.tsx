@@ -1,12 +1,13 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ExamPick } from '@shared/api';
 import type { StepQp } from '@shared/grading/units';
 import { EXAM_KINDS } from '@shared/labels';
-import { formatDateDe, parseDateDe, todayIso } from '@shared/parse/number';
+import { formatDateDe, parsePoints, parseDateDe, todayIso } from '@shared/parse/number';
 import { call } from '../api';
 import { formatWeight } from '@shared/overview';
 import type { EntryMode } from '@shared/types';
-import { Button, Dialog, Field, RadioGroup, Select, TextInput } from '../components/ui';
+import { ComboBox } from '../components/ComboBox';
+import { Button, Checkbox, Dialog, Field, RadioGroup, Select, TextInput } from '../components/ui';
 import { openExam, refreshTree, save, useStore } from '../store';
 
 export function NewExamDialog({ courseId, categoryId, onClose }: { courseId: number | null; categoryId: number | null; onClose: () => void }): React.JSX.Element {
@@ -18,7 +19,7 @@ export function NewExamDialog({ courseId, categoryId, onClose }: { courseId: num
   const firstCat = courseItem?.categories.find((c) => c.id === categoryId) ?? courseItem?.categories[0];
   const [cat, setCat] = useState<number | null>(firstCat?.id ?? null);
   const [entry, setEntry] = useState<EntryMode>(firstCat?.defaultMode ?? 'points');
-  const [kind, setKind] = useState(firstCat?.defaultMode === 'grade' ? 'Mündliche Note' : 'Schulaufgabe');
+  const [kind, setKind] = useState(firstCat?.defaultMode === 'grade' ? 'Mündliche Note' : 'Klassenarbeit');
   const [number, setNumber] = useState('');
   const [date, setDate] = useState(formatDateDe(todayIso()));
   const [teacher, setTeacher] = useState(settings.teacher);
@@ -35,17 +36,22 @@ export function NewExamDialog({ courseId, categoryId, onClose }: { courseId: num
     const k = courseItem?.categories.find((x) => x.id === id);
     if (k) {
       setEntry(k.defaultMode);
-      if (k.defaultMode === 'grade' && kind === 'Schulaufgabe') setKind('Mündliche Note');
-      if (k.defaultMode === 'points' && kind === 'Mündliche Note') setKind('Schulaufgabe');
+      if (k.defaultMode === 'grade' && kind === 'Klassenarbeit') setKind('Mündliche Note');
+      if (k.defaultMode === 'points' && kind === 'Mündliche Note') setKind('Klassenarbeit');
     }
   };
   const [step, setStep] = useState<StepQp>(2);
+  const [errorGrading, setErrorGrading] = useState(false);
+  /** Error grading exists only for points exams in subjects graded 1–6. */
+  const errorsPossible = entry === 'points' && courseItem?.gradingSystem === 'LIN6';
+  /** Points per task (tasks, structure) or only the total per student. */
+  const [perTask, setPerTask] = useState(false);
+  const [maxPoints, setMaxPoints] = useState('');
   const [mode, setMode] = useState<'count' | 'copy'>('count');
   const [count, setCount] = useState('5');
   const [source, setSource] = useState<number | null>(null);
   const [exams, setExams] = useState<ExamPick[]>([]);
   const [tried, setTried] = useState(false);
-  const kindsId = useId();
 
   useEffect(() => {
     void call('exams.all').then(setExams);
@@ -54,18 +60,28 @@ export function NewExamDialog({ courseId, categoryId, onClose }: { courseId: num
   const iso = parseDateDe(date);
   const n = Number(count);
   const countOk = /^\d+$/.test(count.trim()) && n >= 1 && n <= 200;
+  const maxParsed = parsePoints(maxPoints, { stepQp: step, positive: true });
+  const maxOk = maxParsed.ok && maxParsed.qp !== null;
+  const tasksMode = entry === 'points' && perTask;
   const errs = {
     kind: tried && !kind.trim() ? 'Bitte die Art angeben.' : undefined,
     date: tried && !iso ? 'Bitte ein Datum im Format TT.MM.JJJJ eingeben.' : undefined,
-    count: tried && entry === 'points' && mode === 'count' && !countOk ? 'Bitte eine Zahl von 1 bis 200 eingeben.' : undefined,
-    source: tried && entry === 'points' && mode === 'copy' && source === null ? 'Bitte eine Prüfung auswählen.' : undefined,
+    count: tried && tasksMode && mode === 'count' && !countOk ? 'Bitte eine Zahl von 1 bis 200 eingeben.' : undefined,
+    source: tried && tasksMode && mode === 'copy' && source === null ? 'Bitte eine Prüfung auswählen.' : undefined,
+    max:
+      tried && entry === 'points' && !perTask && !maxOk
+        ? maxParsed.ok
+          ? 'Bitte die Höchstpunktzahl eingeben.'
+          : maxParsed.error
+        : undefined,
   };
 
   const submit = async (): Promise<void> => {
     setTried(true);
     if (!kind.trim() || !iso || !course) return;
-    if (entry === 'points' && mode === 'count' && !countOk) return;
-    if (entry === 'points' && mode === 'copy' && source === null) return;
+    if (tasksMode && mode === 'count' && !countOk) return;
+    if (tasksMode && mode === 'copy' && source === null) return;
+    if (entry === 'points' && !perTask && !maxOk) return;
     const id = await save(
       call('exams.create', {
         courseId: course,
@@ -74,10 +90,13 @@ export function NewExamDialog({ courseId, categoryId, onClose }: { courseId: num
         examDate: iso,
         teacher,
         stepQp: step,
-        taskCount: entry === 'points' && mode === 'count' ? n : 0,
-        copyFromExamId: entry === 'points' && mode === 'copy' ? source : null,
+        taskCount: tasksMode && mode === 'count' ? n : 0,
+        copyFromExamId: tasksMode && mode === 'copy' ? source : null,
+        perTask: entry === 'points' ? perTask : true,
+        totalMaxQp: entry === 'points' && !perTask && maxOk ? (maxParsed.qp as number) : undefined,
         categoryId: cat,
         entryMode: entry,
+        errorGrading: errorsPossible && errorGrading,
       }),
     );
     if (id === undefined) return;
@@ -129,12 +148,7 @@ export function NewExamDialog({ courseId, categoryId, onClose }: { courseId: num
           </Select>
         </Field>
         <Field label="Art" htmlFor="ex-kind" error={errs.kind}>
-          <TextInput id="ex-kind" list={kindsId} value={kind} onChange={(e) => setKind(e.target.value)} invalid={!!errs.kind} autoFocus />
-          <datalist id={kindsId}>
-            {EXAM_KINDS.map((k) => (
-              <option key={k} value={k} />
-            ))}
-          </datalist>
+          <ComboBox id="ex-kind" options={EXAM_KINDS} value={kind} onChange={setKind} invalid={!!errs.kind} autoFocus />
         </Field>
         <Field label="Nr." htmlFor="ex-nr">
           <TextInput id="ex-nr" value={number} onChange={(e) => setNumber(e.target.value)} placeholder="z. B. 2." />
@@ -149,12 +163,20 @@ export function NewExamDialog({ courseId, categoryId, onClose }: { courseId: num
         value={entry}
         onChange={setEntry}
         options={[
-          { value: 'points', label: 'Punkte je Aufgabe (z. B. schriftlich)' },
+          { value: 'points', label: 'Punkte (z. B. schriftlich)' },
           { value: 'grade', label: 'Nur Note (z. B. mündlich)' },
         ]}
       />
       {entry === 'points' && (
       <>
+      {errorsPossible && (
+        <Checkbox
+          id="ex-errors"
+          label="Fehlerbewertung (zusätzlich Anzahl der Fehler je Schüler/in)"
+          checked={errorGrading}
+          onChange={setErrorGrading}
+        />
+      )}
       <RadioGroup
         legend="Punkteschritt"
         row
@@ -166,6 +188,14 @@ export function NewExamDialog({ courseId, categoryId, onClose }: { courseId: num
           { value: '1', label: '0,25' },
         ]}
       />
+      <Checkbox id="ex-pertask" label="Punkte je Aufgabe eingeben (sonst nur die Gesamtpunktzahl)" checked={perTask} onChange={setPerTask} />
+      {!perTask && (
+        <Field label="Höchstpunktzahl" htmlFor="ex-max" error={errs.max} hint="Je Schüler/in wird nur die erreichte Gesamtpunktzahl eingetragen.">
+          <TextInput id="ex-max" inputMode="decimal" value={maxPoints} onChange={(e) => setMaxPoints(e.target.value)} invalid={!!errs.max} style={{ width: 100 }} />
+        </Field>
+      )}
+      {perTask && (
+      <>
       <RadioGroup
         legend="Aufgaben"
         row
@@ -200,6 +230,8 @@ export function NewExamDialog({ courseId, categoryId, onClose }: { courseId: num
             ))}
           </Select>
         </Field>
+      )}
+      </>
       )}
       </>
       )}

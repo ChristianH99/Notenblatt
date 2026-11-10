@@ -29,7 +29,7 @@ afterEach(() => {
 
 const exam = (courseId: number, over: Partial<NewExamInput> = {}): NewExamInput => ({
   courseId, kind: 'Schulaufgabe', number: '1', examDate: '2025-10-01', teacher: '',
-  stepQp: 2, taskCount: 1, copyFromExamId: null, categoryId: null, entryMode: 'points', ...over,
+  stepQp: 2, taskCount: 1, copyFromExamId: null, categoryId: null, entryMode: 'points', errorGrading: false, ...over,
 });
 const count = (t: string): number => (repo.db.prepare(`SELECT COUNT(*) n FROM ${t}`).get() as { n: number }).n;
 
@@ -247,9 +247,9 @@ describe('migration to courses (schema 3 → 4)', () => {
     const tree = r.classTree();
     const k10a = tree.find((c) => c.id === 1)!;
     // "Mathe" and " mathe " are one subject; the spelling of the first exam wins.
-    expect(k10a.courses.map((k) => [k.subject, k.gradingSystem, k.finalRounding, k.finalDigits, k.memberIds])).toEqual([
-      ['Mathe', 'LIN6', 'half_favor', 1, [1, 2]],
-      ['Physik', 'LIN6', 'half_favor', 1, [1, 2]],
+    expect(k10a.courses.map((k) => [k.subject, k.gradingSystem, k.rounding, k.showFinal, k.finalDigits, k.memberIds])).toEqual([
+      ['Mathe', 'LIN6', 'half_favor', true, 1, [1, 2]],
+      ['Physik', 'LIN6', 'half_favor', true, 1, [1, 2]],
     ]);
     const [mathe, physik] = k10a.courses;
     expect(mathe!.exams.map((e) => e.id)).toEqual([2, 1]);

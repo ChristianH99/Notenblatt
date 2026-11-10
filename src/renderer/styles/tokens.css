@@ -20,6 +20,9 @@
   --c-border: #c4cad1;
   --c-hover: #e8ebef;
   --c-absent: #f6f7f8;
+  --c-computed: #e4e8ed;
+  --c-group-line: #7d8a98;
+  --c-err-head: #f6ecdf;
 
   --fs-12: 12px;
   --fs-13: 13px;

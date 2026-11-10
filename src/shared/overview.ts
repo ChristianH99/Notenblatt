@@ -16,7 +16,7 @@ export interface OverviewColumn {
   included: boolean;
   /** Why it is not included (German), or null. */
   reason: string | null;
-  /** Class average of this exam in hundredths (truncated), null without results. */
+  /** Class average of this exam in hundredths (rounded by the course's rule), null without results. */
   avgHundredths: number | null;
 }
 
@@ -32,14 +32,14 @@ export interface OverviewRow {
   nr: number;
   cells: OverviewCell[];
   avg: StudentAverage;
-  /** Rounded final mark (NP or grade × 10), null without grades or with rounding "none". */
+  /** Rounded final mark (NP or grade × 10), null without grades or without a final mark. */
   final: number | null;
   finalText: string;
 }
 
 export interface Overview {
   system: Scheme;
-  /** A final mark column is shown (rounding rule ≠ none). */
+  /** A final mark column is shown. */
   showFinal: boolean;
   categories: GradeCategory[];
   columns: OverviewColumn[];
@@ -100,11 +100,11 @@ export function buildOverview(d: OverviewData): Overview {
       if (col.included && col.category) entries.push({ categoryId: col.category.id, value });
       return { value, text: scheme === 'NP15' ? formatMark(value, scheme) : formatGrade10(value), absent: false };
     });
-    const avg = studentAverage(system, weights, entries);
-    const final = finalMark(system, avg.exact, d.course.finalRounding, d.course.finalDigits);
+    const avg = studentAverage(system, weights, entries, d.course.rounding);
+    const final = d.course.showFinal ? finalMark(system, avg.exact, d.course.rounding, d.course.finalDigits) : null;
     return { student: st, nr: i + 1, cells, avg, final, finalText: formatFinalMark(system, final, d.course.finalDigits) };
   });
-  return { system, showFinal: d.course.finalRounding !== 'none', categories: cats, columns, rows };
+  return { system, showFinal: d.course.showFinal, categories: cats, columns, rows };
 }
 
 /** CSV of the overview (same format as the exam CSV: ";" separator, BOM, decimal comma). */

@@ -29,7 +29,7 @@ afterEach(() => {
 function examInput(courseId: number, over: Partial<NewExamInput> = {}): NewExamInput {
   return {
     courseId, kind: 'Kurzarbeit', number: '2.', examDate: '2025-03-19', teacher: 'Frau X',
-    stepQp: 2, taskCount: 3, copyFromExamId: null, categoryId: null, entryMode: 'points', ...over,
+    stepQp: 2, taskCount: 3, copyFromExamId: null, categoryId: null, entryMode: 'points', errorGrading: false, ...over,
   };
 }
 
@@ -338,9 +338,9 @@ describe('secure erasure', () => {
 
 describe('settings', () => {
   it('new subjects default to grades 1,0–6,0 with a final mark to one decimal', () => {
-    expect(repo.getSettings()).toMatchObject({ defaultGradingSystem: 'LIN6', defaultRounding: 'half_up', defaultRoundingDigits: 1 });
+    expect(repo.getSettings()).toMatchObject({ defaultGradingSystem: 'LIN6', defaultRounding: 'truncate', defaultRoundingDigits: 1 });
     const courseId = repo.createCourse(repo.createClass('K', '2025/26'), 'Mathematik');
-    expect(repo.getCourse(courseId)).toMatchObject({ gradingSystem: 'LIN6', finalRounding: 'half_up', finalDigits: 1 });
+    expect(repo.getCourse(courseId)).toMatchObject({ gradingSystem: 'LIN6', rounding: 'truncate', showFinal: true, finalDigits: 1, pointsWeightC: 100, errorsWeightC: 100 });
     repo.setSetting('defaultRoundingDigits', '0');
     repo.setSetting('defaultGradingSystem', 'NP15');
     expect(repo.getSettings()).toMatchObject({ defaultGradingSystem: 'NP15', defaultRoundingDigits: 0 });

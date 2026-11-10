@@ -91,8 +91,12 @@ export function createImpl(ctx: HandlerContext): Impl {
         value = JSON.stringify(r.data);
       }
       if (key === 'defaultGradingSystem' && value !== 'NP15' && value !== 'LIN6') throw new UserError('Ungültiges Notensystem.');
-      if (key === 'defaultRounding' && !['none', 'half_up', 'half_favor'].includes(value ?? '')) throw new UserError('Ungültige Rundung.');
-      if (key === 'defaultRoundingDigits' && value !== '0' && value !== '1') throw new UserError('Ungültige Genauigkeit.');
+      if (key === 'defaultRounding' && !['half_up', 'half_favor', 'truncate'].includes(value ?? '')) throw new UserError('Ungültige Rundung.');
+      if ((key === 'defaultRoundingDigits' || key === 'defaultShowFinal') && value !== '0' && value !== '1') throw new UserError('Ungültige Einstellung.');
+      if ((key === 'defaultPointsWeightC' || key === 'defaultErrorsWeightC') && !/^\d{1,5}$/.test(value ?? '')) throw new UserError('Ungültige Gewichtung.');
+      if ((key === 'defaultPointsWeightC' || key === 'defaultErrorsWeightC') && (Number(value) < 1 || Number(value) > 10000)) {
+        throw new UserError('Die Gewichtung muss zwischen 0,01 und 100 liegen.');
+      }
       repo().setSetting(key, value);
       return repo().getSettings();
     },
@@ -122,7 +126,8 @@ export function createImpl(ctx: HandlerContext): Impl {
     },
     'courses.subjects': () => repo().subjects(),
     'courses.overview': ({ id }) => repo().overview(id),
-    'courses.updateGrading': ({ id, gradingSystem, finalRounding, finalDigits }) => repo().updateCourseGrading(id, { gradingSystem, finalRounding, finalDigits }),
+    'courses.updateGrading': ({ id, gradingSystem, rounding, showFinal, finalDigits, pointsWeightC, errorsWeightC }) =>
+      repo().updateCourseGrading(id, { gradingSystem, rounding, showFinal, finalDigits, pointsWeightC, errorsWeightC }),
     'categories.add': ({ courseId, name, weightC, defaultMode }) => repo().addCategory(courseId, { name, weightC, defaultMode }),
     'categories.update': ({ id, name, weightC, defaultMode }) => repo().updateCategory(id, { name, weightC, defaultMode }),
     'categories.move': ({ id, position }) => repo().moveCategory(id, position),
@@ -133,6 +138,10 @@ export function createImpl(ctx: HandlerContext): Impl {
     },
     'totals.set': ({ examId, changes }) => {
       repo().setTotals(examId, changes);
+      return examData(examId);
+    },
+    'errors.set': ({ examId, changes }) => {
+      repo().setErrors(examId, changes);
       return examData(examId);
     },
     'output.overviewCsv': async ({ courseId }) => {

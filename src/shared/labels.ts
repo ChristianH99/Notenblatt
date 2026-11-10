@@ -1,7 +1,7 @@
 /** Display labels and file names derived from exam metadata. */
 import { formatDateDe } from './parse/number';
 
-export const EXAM_KINDS = ['Schulaufgabe', 'Kurzarbeit', 'Stegreifaufgabe', 'Test', 'Klausur'] as const;
+export const EXAM_KINDS = ['Klassenarbeit', 'Schulaufgabe', 'Kurzarbeit', 'Stegreifaufgabe', 'Test', 'Klausur'] as const;
 
 interface ExamLike {
   kind: string;

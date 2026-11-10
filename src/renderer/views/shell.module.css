@@ -291,6 +291,22 @@
   max-width: 760px;
   margin: 0 0 8px;
 }
+.helpTable {
+  border-collapse: collapse;
+  margin: 0 0 8px;
+  font-size: var(--fs-13);
+  font-variant-numeric: tabular-nums;
+}
+.helpTable th,
+.helpTable td {
+  border: 1px solid var(--c-border);
+  padding: 2px 6px;
+  text-align: right;
+}
+.helpTable th {
+  background: var(--c-header);
+  font-weight: var(--fw-semibold);
+}
 .help code {
   font-family: Consolas, 'Cascadia Mono', monospace;
   font-size: var(--fs-13);

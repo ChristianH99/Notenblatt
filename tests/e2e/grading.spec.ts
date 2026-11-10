@@ -29,7 +29,10 @@ async function newExam(page: Page, opts: { category: string; kind?: string; coun
   const label = await dlg.locator('#ex-cat option', { hasText: opts.category }).first().textContent();
   await dlg.locator('#ex-cat').selectOption({ label: label ?? '' });
   if (opts.kind) await dlg.locator('#ex-kind').fill(opts.kind);
-  if (opts.count) await dlg.locator('#ex-count').fill(opts.count);
+  if (opts.count) {
+    await dlg.locator('#ex-pertask').check();
+    await dlg.locator('#ex-count').fill(opts.count);
+  }
   await dlg.getByRole('button', { name: 'Prüfung anlegen' }).click();
   await expect(dlg).toBeHidden();
 }
@@ -154,14 +157,14 @@ test('weighted overall average, per-subject weights, encryption and custom folde
   await expect(page.getByTestId('overall-Albers')).toHaveText('13,40');
   await expect(page.getByTestId('overall-Brandt')).toHaveText('5,25');
   await expect(page.getByTestId('overall-Conrad')).toHaveText('11,00');
-  // final mark, rounded "kaufmännisch" (template default)
+  // final mark, truncated (template default)
   await expect(page.getByTestId('final-Albers')).toHaveText('13');
   await expect(page.getByTestId('final-Brandt')).toHaveText('5');
   await expect(page.getByTestId('final-Conrad')).toHaveText('11');
   await page.screenshot({ path: SHOT('overview-1440x900.png') });
   await expect(ov.locator('tr[data-student="Albers"] td')).toContainText(['1', 'Albers', 'Anna', '15', '9', '13', '15,00', '11,00', '13,40', '13']);
 
-  // change the weighting of the subject: Mündlich ×3 → Albers (45 + 27 + 39)/9 = 12,33, Brandt (9 + 36)/6 = 7,50 → Endnote 8
+  // change the weighting of the subject: Mündlich ×3 → Albers (45 + 27 + 39)/9 = 12,33, Brandt (9 + 36)/6 = 7,50 → Endnote 7 (truncated)
   await page.getByRole('tab', { name: 'Gewichtung' }).click();
   await page.getByLabel('Gewicht von Mündlich').fill('3');
   await page.getByLabel('Gewicht von Mündlich').press('Enter');
@@ -171,14 +174,14 @@ test('weighted overall average, per-subject weights, encryption and custom folde
   await expect(page.getByTestId('overall-Albers')).toHaveText('12,33');
   await expect(page.getByTestId('overall-Brandt')).toHaveText('7,50');
   await expect(page.getByTestId('final-Albers')).toHaveText('12');
-  await expect(page.getByTestId('final-Brandt')).toHaveText('8');
+  await expect(page.getByTestId('final-Brandt')).toHaveText('7');
   // no final mark → column disappears
   await page.getByRole('tab', { name: 'Gewichtung' }).click();
-  await page.locator('#cls-rounding').selectOption('none');
+  await page.locator('#cls-final').selectOption('none');
   await page.getByRole('tab', { name: 'Notenübersicht' }).click();
   await expect(page.getByTestId('final-Albers')).toHaveCount(0);
   await page.getByRole('tab', { name: 'Gewichtung' }).click();
-  await page.locator('#cls-rounding').selectOption('half_up');
+  await page.locator('#cls-final').selectOption({ index: 0 });
   // the grading system cannot change while oral marks exist
   await page.locator('#cls-system').selectOption('LIN6');
   await expectFlash(page, /Das Notensystem kann nicht geändert werden: In „Mündliche Note · Physik · .*“ sind bereits Noten eingetragen/);
@@ -187,7 +190,7 @@ test('weighted overall average, per-subject weights, encryption and custom folde
   // the other subject of the class keeps its own weighting
   await openCourseTab(page, 'Chemie', 'Gewichtung');
   await expect(page.getByLabel('Gewicht von Mündlich')).toHaveValue('1');
-  await expect(page.locator('#cls-rounding')).toHaveValue('half_up');
+  await expect(page.locator('#cls-rounding')).toHaveValue('truncate');
 
   // template change in the settings affects only NEW subjects
   await page.getByRole('button', { name: 'Einstellungen' }).click();

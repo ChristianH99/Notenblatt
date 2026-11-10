@@ -249,7 +249,7 @@ export function MarkGrid({ exam }: { exam: ExamData }): React.JSX.Element {
                   role="gridcell"
                   tabIndex={focused ? 0 : -1}
                   aria-selected={focused}
-                  className={cx(s.cell, s.result, focused && !editing && s.focused, rr?.low && s.low)}
+                  className={cx(s.cell, s.result, s.editable, focused && !editing && s.focused, rr?.low && s.low)}
                   onPointerDown={(e) => {
                     if (e.button !== 0 || editing) return;
                     active.current = true;
@@ -280,7 +280,7 @@ export function MarkGrid({ exam }: { exam: ExamData }): React.JSX.Element {
                     />
                   )}
                 </td>
-                <td className={cx(s.verbal, rr?.low && s.low)}>
+                <td className={cx(s.verbal, s.computed, rr?.low && s.low)}>
                   {v !== null && !absent ? (scheme === 'NP15' ? `${markGroup(v, scheme)} (${markVerbal(v, scheme)})` : markVerbal(v, scheme)) : ''}
                 </td>
               </tr>

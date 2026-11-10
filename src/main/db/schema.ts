@@ -242,6 +242,31 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE school_class DROP COLUMN final_digits;
     `);
   },
+  // 5 — error grading and one rounding rule per course. The rule ("kaufmännisch", in favour of the
+  //     student, or truncate) now applies to the averages, the combined grade of an exam with error
+  //     grading and the final mark; whether a final mark is shown is a separate flag ("none" before).
+  //     Exams graded 1–6 can count errors per student; the course weights points : errors.
+  `
+  ALTER TABLE course ADD COLUMN rounding TEXT NOT NULL DEFAULT 'truncate' CHECK (rounding IN ('half_up','half_favor','truncate'));
+  ALTER TABLE course ADD COLUMN show_final INTEGER NOT NULL DEFAULT 1 CHECK (show_final IN (0,1));
+  ALTER TABLE course ADD COLUMN points_weight_c INTEGER NOT NULL DEFAULT 100 CHECK (points_weight_c BETWEEN 1 AND 10000);
+  ALTER TABLE course ADD COLUMN errors_weight_c INTEGER NOT NULL DEFAULT 100 CHECK (errors_weight_c BETWEEN 1 AND 10000);
+  UPDATE course SET rounding = CASE final_rounding WHEN 'half_favor' THEN 'half_favor' WHEN 'half_up' THEN 'half_up' ELSE 'truncate' END,
+                    show_final = CASE final_rounding WHEN 'none' THEN 0 ELSE 1 END;
+  ALTER TABLE course DROP COLUMN final_rounding;
+  ALTER TABLE exam ADD COLUMN error_grading INTEGER NOT NULL DEFAULT 0 CHECK (error_grading IN (0,1));
+  CREATE TABLE error_count (
+    exam_id INTEGER NOT NULL REFERENCES exam(id) ON DELETE CASCADE,
+    student_id INTEGER NOT NULL REFERENCES student(id) ON DELETE CASCADE,
+    half_errors INTEGER NOT NULL CHECK (half_errors >= 0),
+    PRIMARY KEY (exam_id, student_id)
+  );
+  CREATE INDEX error_count_student ON error_count(student_id);
+  `,
+  // 6 — points exams can be entered as a total per student only (one task "Gesamt", tasks hidden).
+  `
+  ALTER TABLE exam ADD COLUMN per_task INTEGER NOT NULL DEFAULT 1 CHECK (per_task IN (0,1));
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

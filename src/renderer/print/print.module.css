@@ -1,8 +1,15 @@
+/* No page margin: Chromium leaves the margin box unpainted (grey in some viewers). Each page pads itself instead. */
 @page {
   size: A4 landscape;
-  margin: 9mm 10mm;
+  margin: 0;
 }
 
+/* Pure white page: the app's window colour must never reach paper or PDF (class set in main.tsx). */
+:global(html.print-page),
+:global(html.print-page body) {
+  overflow: visible;
+  background: #fff !important;
+}
 .root {
   background: #fff;
   color: #000;
@@ -11,38 +18,56 @@
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
-:global(body:has(.root)) {
-  overflow: visible;
-  background: #fff;
-}
 
 .page {
   break-after: page;
   page-break-after: always;
-  width: 277mm;
+  box-sizing: border-box;
+  width: 297mm;
+  min-height: 209mm;
+  padding: 9mm 10mm;
+  background: #fff;
 }
 .page:last-child {
   break-after: auto;
   page-break-after: auto;
 }
 
+/* ───── header: exam data left, school and export time right ───── */
 .header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6mm;
+  padding-bottom: 2mm;
+  margin-bottom: 3mm;
+  border-bottom: 0.5mm solid #000;
+  font-size: 10pt;
+}
+.headMain {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 4px 18px;
-  padding-bottom: 2mm;
-  margin-bottom: 3mm;
-  border-bottom: 0.3mm solid #000;
-  font-size: 10pt;
+  gap: 1mm 5mm;
+  min-width: 0;
+}
+.headSide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex: none;
+  text-align: right;
 }
 .title {
   font-size: 12pt;
-  font-weight: 600;
+  font-weight: 700;
 }
 .school {
-  margin-left: auto;
-  color: #333;
+  color: #000;
+}
+.stamp {
+  font-size: 7.5pt;
+  color: #444;
 }
 
 .layout {
@@ -55,54 +80,78 @@
   min-width: 0;
 }
 
+/* ───── tables: every cell has a clearly visible border ───── */
 .grid {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
   font-variant-numeric: tabular-nums;
+  border: 0.4mm solid #000;
 }
 .grid th,
 .grid td {
-  height: 4.6mm;
-  padding: 0 1mm;
-  border: 0.15mm solid #888;
+  height: 4.8mm;
+  padding: 0 1.2mm;
+  border: 0.25mm solid #555;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: #000;
 }
 .grid th {
-  background: #e8e8e8;
+  background: #e4e4e4;
   font-weight: 600;
 }
 .grid thead {
   display: table-header-group;
 }
+.grid thead tr:last-child th {
+  border-bottom: 0.4mm solid #000;
+}
 .maxRow th {
-  background: #f2f2f2;
+  background: #f1f1f1;
   font-weight: 400;
 }
 .grid tfoot td,
 .grid tfoot th {
-  background: #eee;
+  background: #ececec;
   font-weight: 600;
 }
+.grid tfoot tr:first-child td,
+.grid tfoot tr:first-child th {
+  border-top: 0.4mm solid #000;
+}
+/* Group lines: names | tasks | points | errors | exam grade. */
+.lastLeft {
+  border-right: 0.5mm solid #000 !important;
+}
+.groupStart {
+  border-left: 0.5mm solid #000 !important;
+}
+
 .cNr {
-  width: 6mm;
+  width: 7mm;
 }
 .cName {
   width: 27mm;
 }
 .cFirst {
-  width: 22mm;
+  width: 23mm;
 }
 .cSum {
+  width: 14mm;
+}
+.cPart {
   width: 13mm;
 }
+.cErr {
+  width: 12mm;
+}
 .cRes {
-  width: 10.5mm;
+  width: 12mm;
 }
 .cVerbal {
-  width: 20mm;
+  width: 23mm;
 }
 .name {
   background: #f6f6f6;
@@ -120,9 +169,10 @@
   text-decoration: underline;
 }
 .absent td {
-  color: #777;
+  color: #666;
 }
 
+/* ───── evaluation panel next to the grid ───── */
 .side {
   width: 66mm;
   flex: none;
@@ -130,24 +180,36 @@
   flex-direction: column;
   gap: 3mm;
 }
+.side :global(table) {
+  border-collapse: collapse;
+  border: 0.4mm solid #000 !important;
+}
 .side :global(table) th,
 .side :global(table) td {
-  border-color: #888 !important;
-  height: 4.2mm;
+  border: 0.25mm solid #555 !important;
+  height: 4.4mm;
   font-size: 8pt;
 }
 .side :global(table) th {
-  background: #e8e8e8 !important;
+  background: #e4e4e4 !important;
+  color: #000 !important;
 }
 .side :global(table) td {
   color: #000 !important;
   background: #fff !important;
+}
+.side :global(dl) {
+  color: #000;
+}
+.side :global(dt) {
+  color: #333 !important;
 }
 .sideTitle {
   font-weight: 600;
   font-size: 9.5pt;
 }
 
+/* ───── Notenspiegel ───── */
 .spiegel {
   margin-bottom: 6mm;
 }
@@ -183,11 +245,35 @@
   display: contents;
 }
 
+/* ───── full key ───── */
 .keyCols {
   display: flex;
-  gap: 4mm;
+  gap: 5mm;
   align-items: flex-start;
 }
-.keyCols table {
-  width: 52mm;
+.keyTable {
+  width: 60mm;
+}
+.keyTable td,
+.keyTable th,
+.errorKeyTable td,
+.errorKeyTable th {
+  height: 4.3mm;
+}
+.errorKey {
+  width: 34mm;
+  flex: none;
+}
+.errorKeyTable {
+  width: 100%;
+}
+.errorKeyTable th,
+.errorKeyTable td {
+  text-align: right;
+}
+.keyNote {
+  margin: 2mm 0 0;
+  font-size: 7.5pt;
+  color: #333;
+  white-space: normal;
 }

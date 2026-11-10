@@ -1,7 +1,7 @@
 import { useEditField } from '../hooks';
 import type { CategoryTemplate } from '@shared/types';
 import { CategoryEditor } from '../components/CategoryEditor';
-import { ROUNDING_OPTIONS } from './CourseGrading';
+import { GradingRuleFields } from './CourseGrading';
 import { Button, Select, TextInput } from '../components/ui';
 import { call } from '../api';
 import { setSetting, useStore } from '../store';
@@ -146,24 +146,28 @@ export function SettingsView(): React.JSX.Element {
               „Gewichtung“.
             </p>
             <div className={s.formGrid}>
-              <label htmlFor="set-system">Notensystem</label>
-              <Select id="set-system" value={st.defaultGradingSystem} onChange={(e) => void setSetting('defaultGradingSystem', e.target.value)}>
-                <option value="NP15">Notenpunkte 0–15</option>
-                <option value="LIN6">Noten 1,0–6,0 (linear)</option>
-              </Select>
-              <label htmlFor="set-rounding">Endnote</label>
-              <Select id="set-rounding" value={st.defaultRounding} onChange={(e) => void setSetting('defaultRounding', e.target.value)}>
-                {ROUNDING_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </Select>
-              <label htmlFor="set-digits">Genauigkeit (Noten 1–6)</label>
-              <Select id="set-digits" value={st.defaultRoundingDigits} onChange={(e) => void setSetting('defaultRoundingDigits', e.target.value)}>
-                <option value={0}>Ganze Note (z. B. 2)</option>
-                <option value={1}>Eine Nachkommastelle (z. B. 2,3)</option>
-              </Select>
+              <GradingRuleFields
+                idPrefix="set"
+                showErrorWeights
+                value={{
+                  gradingSystem: st.defaultGradingSystem,
+                  rounding: st.defaultRounding,
+                  showFinal: st.defaultShowFinal,
+                  finalDigits: st.defaultRoundingDigits,
+                  pointsWeightC: st.defaultPointsWeightC,
+                  errorsWeightC: st.defaultErrorsWeightC,
+                }}
+                onChange={(p) =>
+                  void (async () => {
+                    if (p.gradingSystem !== undefined) await setSetting('defaultGradingSystem', p.gradingSystem);
+                    if (p.rounding !== undefined) await setSetting('defaultRounding', p.rounding);
+                    if (p.showFinal !== undefined) await setSetting('defaultShowFinal', p.showFinal ? '1' : '0');
+                    if (p.finalDigits !== undefined) await setSetting('defaultRoundingDigits', String(p.finalDigits));
+                    if (p.pointsWeightC !== undefined) await setSetting('defaultPointsWeightC', String(p.pointsWeightC));
+                    if (p.errorsWeightC !== undefined) await setSetting('defaultErrorsWeightC', String(p.errorsWeightC));
+                  })()
+                }
+              />
             </div>
             <CategoryEditor
               label="Kategorien der Vorlage"

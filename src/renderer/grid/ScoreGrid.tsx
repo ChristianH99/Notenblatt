@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { buildExamModel, resultText, sumText } from '@shared/examModel';
+import { buildExamModel, errorsText, hasErrorGrading, partText, resultText, sumText } from '@shared/examModel';
 import { formatHundredths, formatQp, formatTenths, parsePoints } from '@shared/parse/number';
-import { VERBAL } from '@shared/grading/lin6';
-import type { ExamData, ScoreChange, TotalChange } from '@shared/types';
+import { formatErrors, parseErrors } from '@shared/grading/errors';
+import { linIsLow, VERBAL } from '@shared/grading/lin6';
+import { formatWeight } from '@shared/overview';
+import type { ErrorChange, ExamData, ScoreChange, TotalChange } from '@shared/types';
 import { call } from '../api';
 import { Icon } from '../components/Icon';
 import { Button, Dialog, Menu, type MenuItem } from '../components/ui';
 import { useTouchMode } from '../hooks';
-import { applyLocalScores, applyLocalTotals, examWrite, flash, pushUndo, useStore } from '../store';
+import { applyLocalErrors, applyLocalScores, applyLocalTotals, examWrite, flash, pushUndo, useStore } from '../store';
 import s from './grid.module.css';
 
 const LABEL_ROW = -2;
@@ -25,6 +27,9 @@ interface EditState extends Pos {
 
 const cx = (...c: (string | false | null | undefined)[]): string => c.filter(Boolean).join(' ');
 const cellId = (r: number, c: number): string => `cell-${r}-${c}`;
+/** DOM id of a cell; sum and error count of student rows have their own ids. */
+const domId = (r: number, c: number, sumCol: number, errCol: number): string =>
+  r >= 0 && c === sumCol ? `sum-${r}` : r >= 0 && c === errCol ? `err-${r}` : cellId(r, c);
 
 function rectOf(a: Pos | null, f: Pos): { r0: number; r1: number; c0: number; c1: number } {
   const b = a && a.r >= 0 && f.r >= 0 ? a : f;
@@ -40,8 +45,16 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
   const examId = exam.exam.id;
   const step = exam.exam.stepQp;
   const np = exam.exam.scheme === 'NP15';
+  const errorGrading = hasErrorGrading(exam);
+  /** Only the total per student is entered: the single task column is the points column, no sum column. */
+  const totalOnly = !exam.exam.perTask;
   const nT = tasks.length;
   const nR = students.length;
+  /** Column index of the editable sum (after the last task; none for total-only exams) and of the error count. */
+  const SUM = totalOnly ? -1 : nT;
+  const ERR = errorGrading ? (totalOnly ? nT : nT + 1) : -1;
+  /** Last column a student row can be navigated to. */
+  const LAST = Math.max(nT - 1, SUM, ERR);
 
   const [focus, setFocus] = useState<Pos>({ r: nR > 0 ? 0 : MAX_ROW, c: 0 });
   const [anchor, setAnchor] = useState<Pos | null>(null);
@@ -71,20 +84,20 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
       return;
     }
     if (!active.current) return;
-    const el = document.getElementById(focus.c === nT && focus.r >= 0 ? `sum-${focus.r}` : cellId(focus.r, focus.c));
+    const el = document.getElementById(domId(focus.r, focus.c, SUM, ERR));
     if (el && document.activeElement !== el) el.focus({ preventScroll: false });
-  }, [focus, edit, nT]);
+  }, [focus, edit, SUM, ERR]);
 
   // ───── geometry ─────
   const W = useMemo(
-    () => ({ nr: 44, name: touch ? 140 : 130, first: touch ? 120 : 110, task: touch ? 64 : 58, add: 36, sum: 66, res: np ? 52 : 52, verbal: 104, eq: 52 }),
+    () => ({ nr: 44, name: touch ? 140 : 130, first: touch ? 120 : 110, task: touch ? 64 : 58, add: 36, sum: 66, res: np ? 52 : 52, verbal: 104, eq: 52, err: 58, part: 62 }),
     [touch, np],
   );
   const rightCols = useMemo(() => {
-    const cols: { key: 'sum' | 'res' | 'verbal' | 'eq'; w: number }[] = [
-      { key: 'sum', w: W.sum },
-      { key: 'res', w: W.res },
-    ];
+    // Error grading: points grade (pres), error count (err) and error grade (eres) before the exam grade.
+    const cols: { key: 'sum' | 'pres' | 'err' | 'eres' | 'res' | 'verbal' | 'eq'; w: number }[] = totalOnly ? [] : [{ key: 'sum', w: W.sum }];
+    if (errorGrading) cols.push({ key: 'pres', w: W.part }, { key: 'err', w: W.err }, { key: 'eres', w: W.part });
+    cols.push({ key: 'res', w: W.res });
     if (!np) cols.push({ key: 'verbal', w: W.verbal });
     if (np && showEq) cols.push({ key: 'eq', w: W.eq });
     let right = 0;
@@ -95,17 +108,18 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
       right += col.w;
     }
     return { cols, off, total: right };
-  }, [W, np, showEq]);
+  }, [W, np, showEq, errorGrading, totalOnly]);
+  const taskW = totalOnly ? W.sum : W.task;
+  const addW = totalOnly ? 0 : W.add;
   const leftW = W.nr + W.name + W.first;
   const stL = (left: number): React.CSSProperties => ({ left });
   const stR = (key: string): React.CSSProperties => ({ right: rightCols.off[key] });
 
   // ───── value helpers ─────
   const valueAt = useCallback((r: number, c: number): number | null => model.values[r]?.[c] ?? null, [model]);
-  /** Column index of the editable sum (after the last task). */
-  const SUM = nT;
-  const idOf = (r: number, c: number): string => (c === SUM && r >= 0 ? `sum-${r}` : cellId(r, c));
+  const idOf = (r: number, c: number): string => domId(r, c, SUM, ERR);
   const totalAt = (r: number): number | null => model.totals[r] ?? null;
+  const errorsAt = (r: number): number | null => model.errors[r] ?? null;
   const isOverride = (r: number): boolean => r >= 0 && totalAt(r) !== null;
   const lockedMsg = (r: number): string => {
     const st = students[r];
@@ -116,9 +130,13 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
       const tot = totalAt(r);
       return tot === null ? '' : formatQp(tot);
     }
+    if (c === ERR && r >= 0) {
+      const e = errorsAt(r);
+      return e === null ? '' : formatErrors(e);
+    }
     const t = tasks[c];
     if (!t) return '';
-    if (r === LABEL_ROW) return t.label;
+    if (r === LABEL_ROW) return totalOnly ? 'Punkte' : t.label;
     if (r === MAX_ROW) return formatQp(t.maxQp);
     const v = valueAt(r, c);
     return v === null ? '' : formatQp(v);
@@ -150,6 +168,16 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
     void examWrite(call('totals.set', { examId, changes: real.map((x) => ({ studentId: x.studentId, qp: x.qp })) }));
   };
 
+  const writeErrors = (changes: ErrorChange[]): void => {
+    const real = changes
+      .map((ch) => ({ ...ch, before: errorsAt(students.findIndex((x) => x.id === ch.studentId)) }))
+      .filter((x) => x.before !== x.halfErrors);
+    if (real.length === 0) return;
+    applyLocalErrors(real);
+    pushUndo(examId, { kind: 'errors', changes: real.map((x) => ({ studentId: x.studentId, before: x.before, after: x.halfErrors })) });
+    void examWrite(call('errors.set', { examId, changes: real.map((x) => ({ studentId: x.studentId, halfErrors: x.halfErrors })) }));
+  };
+
   const parseTotal = (raw: string): ReturnType<typeof parsePoints> => {
     const p = parsePoints(raw, { stepQp: step, maxQp: model.maxQp });
     return p.ok ? p : { ok: false, error: `Summe: ${p.error}` };
@@ -170,6 +198,21 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
         return false;
       }
       writeTotals([{ studentId: st.id, qp: p.qp }]);
+      return true;
+    }
+    if (errorGrading && pos.c === ERR && pos.r >= 0) {
+      const st = students[pos.r];
+      if (!st) return true;
+      if (st.status === 'absent') {
+        flash(`${st.lastName}, ${st.firstName} fehlt – keine Eingabe möglich.`);
+        return false;
+      }
+      const p = parseErrors(raw);
+      if (!p.ok) {
+        flash(p.error);
+        return false;
+      }
+      writeErrors([{ studentId: st.id, halfErrors: p.halfErrors }]);
       return true;
     }
     const t = tasks[pos.c];
@@ -232,8 +275,8 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
   // ───── navigation ─────
   const clampPos = (r: number, c: number): Pos => {
     const rr = Math.min(Math.max(r, LABEL_ROW), nR - 1);
-    // The sum column exists only in student rows.
-    return { r: rr, c: Math.min(Math.max(c, 0), rr >= 0 ? SUM : nT - 1) };
+    // The sum and error columns exist only in student rows.
+    return { r: rr, c: Math.min(Math.max(c, 0), rr >= 0 ? LAST : nT - 1) };
   };
   const moveTo = (p: Pos, extend = false): void => {
     active.current = true;
@@ -248,6 +291,12 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
   };
 
   const startEdit = (pos: Pos, value: string | null, mode: EditState['mode']): void => {
+    if (totalOnly && pos.r === LABEL_ROW) {
+      // The single points column of a total-only exam has no editable label.
+      active.current = true;
+      setFocus(pos);
+      return;
+    }
     if (isAbsent(pos.r)) {
       const st = students[pos.r];
       flash(`${st?.lastName}, ${st?.firstName} fehlt – keine Eingabe möglich.`);
@@ -296,6 +345,29 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
     if (lines.length === 0 || (lines.length === 1 && lines[0] === '')) return;
     const top = anchor ? selection.r0 : focus.r;
     const left = anchor ? selection.c0 : focus.c;
+    if (errorGrading && left === ERR) {
+      // A column of error counts pasted into the error column.
+      const errs: ErrorChange[] = [];
+      for (let i = 0; i < lines.length; i++) {
+        const st = students[top + i];
+        if (!st) {
+          flash('Der eingefügte Bereich ist größer als die Tabelle. Nichts wurde übernommen.');
+          return;
+        }
+        if (st.status === 'absent') {
+          flash(`${st.lastName}, ${st.firstName} fehlt – nichts wurde übernommen.`);
+          return;
+        }
+        const p = parseErrors((lines[i] as string).split('\t')[0] as string);
+        if (!p.ok) {
+          flash(`Zeile ${st.nr}, ${p.error} – nichts wurde übernommen.`);
+          return;
+        }
+        errs.push({ studentId: st.id, halfErrors: p.halfErrors });
+      }
+      writeErrors(errs);
+      return;
+    }
     if (left === SUM) {
       // A column of totals (e.g. copied from Excel) pasted into the sum column.
       const totals: TotalChange[] = [];
@@ -357,16 +429,20 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
     if (focus.r < 0) return;
     const changes: ScoreChange[] = [];
     const totals: TotalChange[] = [];
+    const errs: ErrorChange[] = [];
+    const spans = (c: number): boolean => selection.c0 <= c && selection.c1 >= c;
     for (let r = selection.r0; r <= selection.r1; r++) {
       const st = students[r];
       if (!st || st.status === 'absent') continue;
-      if (selection.c1 >= SUM && totalAt(r) !== null) totals.push({ studentId: st.id, qp: null });
+      if (errorGrading && spans(ERR) && errorsAt(r) !== null) errs.push({ studentId: st.id, halfErrors: null });
+      if (spans(SUM) && totalAt(r) !== null) totals.push({ studentId: st.id, qp: null });
       if (isOverride(r)) continue; // task cells are locked while a sum is entered
       for (let c = selection.c0; c <= Math.min(selection.c1, nT - 1); c++) {
         const t = tasks[c];
         if (t && valueAt(r, c) !== null) changes.push({ taskId: t.id, studentId: st.id, qp: null });
       }
     }
+    if (errs.length) writeErrors(errs);
     if (totals.length) writeTotals(totals);
     else if (changes.length) writeScores(changes);
   };
@@ -506,7 +582,7 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
           e.preventDefault();
           const el = document.getElementById(`nr-${focus.r}`);
           if (el) setRowMenu({ r: focus.r, el });
-        } else {
+        } else if (!totalOnly) {
           e.preventDefault();
           const el = document.getElementById(`more-${focus.c}`);
           if (el) setTaskMenu({ c: focus.c, el });
@@ -619,10 +695,10 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
           role="columnheader"
           aria-label={r === LABEL_ROW ? `Aufgabe ${t.label}` : `Höchstpunkte ${textAt(r, c)}`}
           className={cx(s.headCell, focused && !editing && s.cell, focused && !editing && s.focused, colActive && (r === LABEL_ROW ? s.headActive : s.thead2Active), extraClass)}
-          style={{ width: W.task }}
+          style={{ width: taskW }}
           {...common}
         >
-          {r === LABEL_ROW && (
+          {r === LABEL_ROW && !totalOnly && (
             <button
               type="button"
               id={`more-${c}`}
@@ -652,7 +728,7 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
         aria-selected={inSel(r, c) || focused}
         aria-readonly={locked || undefined}
         title={locked ? 'Summe direkt eingetragen – diese Aufgabe wird nicht gewertet. Summe leeren, um die Aufgaben zu bearbeiten.' : undefined}
-        className={cx(s.cell, locked && s.locked, focused && !editing && s.focused, inSel(r, c) && !focused && s.selected, extraClass)}
+        className={cx(s.cell, s.editable, totalOnly && s.sum, locked && s.locked, focused && !editing && s.focused, inSel(r, c) && !focused && s.selected, extraClass)}
         {...common}
       >
         {v === null ? '' : formatQp(v)}
@@ -661,21 +737,46 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
     );
   };
 
+  type RightKey = (typeof rightCols.cols)[number]['key'];
+  /** Error grading: a strong line before the errors and before the exam grade separates points | errors | result. */
+  const groupCls = (key: RightKey): string => cx(errorGrading && (key === 'err' || key === 'res') && s.groupStart);
   const resultHeaders = (row: 1 | 2): React.JSX.Element[] =>
     rightCols.cols.map((col, i) => {
-      const cls = cx(s.stickyR, i === 0 && s.firstRight);
+      const cls = cx(s.stickyR, i === 0 && s.firstRight, groupCls(col.key), (col.key === 'err' || col.key === 'eres') && s.errHead);
       const style = { ...stR(col.key), width: col.w };
       if (row === 1) {
-        const label = col.key === 'sum' ? 'Summe' : col.key === 'res' ? (np ? 'NP' : 'Note') : col.key === 'verbal' ? '' : 'Note';
+        const label = {
+          sum: 'Summe',
+          pres: 'Note P.',
+          err: 'Fehler',
+          eres: 'Note F.',
+          res: np ? 'NP' : 'Note',
+          verbal: '',
+          eq: 'Note',
+        }[col.key];
+        const tip = {
+          pres: 'Note aus den Punkten',
+          err: 'Anzahl der Fehler (halbe Fehler möglich, z. B. 3,5)',
+          eres: 'Note aus den Fehlern',
+          res: errorGrading ? 'Note der Prüfung aus Punkten und Fehlern' : undefined,
+        }[col.key as string];
         return (
-          <th key={col.key} scope="col" className={cx(cls, col.key !== 'verbal' && s.rowLabel)} style={style}>
+          <th key={col.key} scope="col" className={cx(cls, col.key !== 'verbal' && s.rowLabel)} style={style} title={tip}>
             {label}
           </th>
         );
       }
       return (
-        <th key={col.key} scope="col" className={cx(cls, s.rowLabel)} style={style} id={col.key === 'sum' ? 'total-max' : undefined}>
+        <th
+          key={col.key}
+          scope="col"
+          className={cx(cls, s.rowLabel)}
+          style={style}
+          id={col.key === 'sum' ? 'total-max' : undefined}
+          title={col.key === 'res' && errorGrading ? 'Gewichtung Punkte : Fehler (im Fach unter „Gewichtung“)' : undefined}
+        >
           {col.key === 'sum' ? formatQp(model.maxQp) : ''}
+          {col.key === 'res' && errorGrading ? `${formatWeight(exam.course.pointsWeightC)} : ${formatWeight(exam.course.errorsWeightC)}` : ''}
         </th>
       );
     });
@@ -697,16 +798,16 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
         aria-label="Punktetabelle"
         aria-rowcount={nR + 4}
         aria-colcount={3 + nT + rightCols.cols.length}
-        style={{ width: leftW + nT * W.task + W.add + rightCols.total }}
+        style={{ width: leftW + nT * taskW + addW + rightCols.total }}
       >
         <colgroup>
           <col style={{ width: W.nr }} />
           <col style={{ width: W.name }} />
           <col style={{ width: W.first }} />
           {tasks.map((t) => (
-            <col key={t.id} style={{ width: W.task }} />
+            <col key={t.id} style={{ width: taskW }} />
           ))}
-          <col style={{ width: W.add }} />
+          {!totalOnly && <col style={{ width: W.add }} />}
           {rightCols.cols.map((c) => (
             <col key={c.key} style={{ width: c.w }} />
           ))}
@@ -714,9 +815,10 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
         <thead>
           <tr role="row">
             <th colSpan={3} scope="row" className={cx(s.stickyL, s.lastLeft, s.rowLabel)} style={stL(0)}>
-              Aufgabe
+              {totalOnly ? '' : 'Aufgabe'}
             </th>
             {tasks.map((_, c) => renderTaskCell(LABEL_ROW, c))}
+            {!totalOnly && (
             <th rowSpan={2} className={s.addCol}>
               <button
                 type="button"
@@ -728,6 +830,7 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
                 <Icon name="add" />
               </button>
             </th>
+            )}
             {resultHeaders(1)}
           </tr>
           <tr role="row">
@@ -743,7 +846,8 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
             const rr = st.rows[r];
             const absent = stu.status === 'absent';
             const rowActive = focus.r === r;
-            const partial = rr && rr.participant && rr.missingCount > 0;
+            // With error grading the points can be complete before the errors are entered.
+            const partial = rr && rr.sumQp !== null && rr.missingCount > 0;
             const low = rr?.low;
             return (
               <tr key={stu.id} role="row" className={cx(absent && s.absent, rowActive && s.rowActive)} data-student={stu.id}>
@@ -769,9 +873,9 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
                   {stu.firstName}
                 </td>
                 {tasks.map((_, c) => renderTaskCell(r, c))}
-                <td className={s.emptyCol} />
+                {!totalOnly && <td className={s.emptyCol} />}
                 {rightCols.cols.map((col, i) => {
-                  const cls = cx(s.stickyR, i === 0 && s.firstRight);
+                  const cls = cx(s.stickyR, i === 0 && s.firstRight, groupCls(col.key));
                   const style = stR(col.key);
                   if (col.key === 'sum') {
                     const focused = focus.r === r && focus.c === SUM;
@@ -789,6 +893,7 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
                           cls,
                           s.sum,
                           s.sumCell,
+                          s.editable,
                           override && s.sumOverride,
                           partial && s.partial,
                           focused && !editing && s.focused,
@@ -823,22 +928,64 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
                       </td>
                     );
                   }
+                  if (col.key === 'err') {
+                    const focused = focus.r === r && focus.c === ERR;
+                    const editing = edit && edit.r === r && edit.c === ERR;
+                    return (
+                      <td
+                        key="err"
+                        id={`err-${r}`}
+                        role="gridcell"
+                        tabIndex={focused ? 0 : -1}
+                        aria-selected={inSel(r, ERR) || focused}
+                        className={cx(cls, s.sum, s.sumCell, s.editable, focused && !editing && s.focused, inSel(r, ERR) && !focused && s.selected)}
+                        style={style}
+                        title="Anzahl der Fehler"
+                        onPointerDown={(e) => onCellPointerDown(e, r, ERR)}
+                        onPointerEnter={(e) => onCellPointerEnter(e, r, ERR)}
+                        onDoubleClick={() => startEdit({ r, c: ERR }, null, 'edit')}
+                      >
+                        {errorsText(model, r)}
+                        {editing && (
+                          <input
+                            ref={inputRef}
+                            className={s.editInput}
+                            defaultValue={edit.value}
+                            inputMode="decimal"
+                            aria-label={`Fehler von ${stu.lastName}, ${stu.firstName}`}
+                            spellCheck={false}
+                            autoComplete="off"
+                            onKeyDown={onEditKey}
+                            onBlur={onEditBlur}
+                          />
+                        )}
+                      </td>
+                    );
+                  }
+                  if (col.key === 'pres' || col.key === 'eres') {
+                    const g = col.key === 'pres' ? rr?.pointsGrade10 : rr?.errorsGrade10;
+                    return (
+                      <td key={col.key} id={`${col.key}-${r}`} className={cx(cls, s.result, s.computed, g != null && linIsLow(g) && s.low)} style={style}>
+                        {partText(model, r, col.key === 'pres' ? 'points' : 'errors')}
+                      </td>
+                    );
+                  }
                   if (col.key === 'res') {
                     return (
-                      <td key="res" id={`res-${r}`} className={cx(cls, s.result, low && s.low)} style={style}>
+                      <td key="res" id={`res-${r}`} className={cx(cls, s.result, s.computed, low && s.low)} style={style}>
                         {resultText(model, r)}
                       </td>
                     );
                   }
                   if (col.key === 'verbal') {
                     return (
-                      <td key="verbal" id={`verbal-${r}`} className={cx(cls, s.verbal, low && s.low)} style={style}>
+                      <td key="verbal" id={`verbal-${r}`} className={cx(cls, s.verbal, s.computed, low && s.low)} style={style}>
                         {rr?.participant && rr.group ? VERBAL[rr.group - 1] : absent ? '–' : ''}
                       </td>
                     );
                   }
                   return (
-                    <td key="eq" id={`eq-${r}`} className={cx(cls, s.result, low && s.low)} style={style}>
+                    <td key="eq" id={`eq-${r}`} className={cx(cls, s.result, s.computed, low && s.low)} style={style}>
                       {rr?.participant ? rr.group : absent ? '–' : ''}
                     </td>
                   );
@@ -857,15 +1004,17 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
                 {st.taskAvgTenths[c] === null || st.taskAvgTenths[c] === undefined ? '' : formatTenths(st.taskAvgTenths[c] as number)}
               </td>
             ))}
-            <td />
+            {!totalOnly && <td />}
             {rightCols.cols.map((col, i) => (
               <td
                 key={col.key}
-                id={col.key === 'sum' ? 'avg-sum' : col.key === 'res' ? 'avg-grade' : undefined}
-                className={cx(s.stickyR, i === 0 && s.firstRight, 'num', s.result)}
+                id={col.key === 'sum' ? 'avg-sum' : col.key === 'res' ? 'avg-grade' : col.key === 'pres' || col.key === 'eres' ? `avg-${col.key}` : undefined}
+                className={cx(s.stickyR, i === 0 && s.firstRight, groupCls(col.key), 'num', s.result)}
                 style={stR(col.key)}
               >
                 {col.key === 'sum' && st.sumAvgTenths !== null ? formatTenths(st.sumAvgTenths) : ''}
+                {col.key === 'pres' && st.pointsGradeAvgHundredths !== null ? formatHundredths(st.pointsGradeAvgHundredths) : ''}
+                {col.key === 'eres' && st.errorsGradeAvgHundredths !== null ? formatHundredths(st.errorsGradeAvgHundredths) : ''}
                 {col.key === 'res' && st.gradeAvgHundredths !== null ? formatHundredths(st.gradeAvgHundredths) : ''}
               </td>
             ))}
@@ -879,9 +1028,9 @@ export function ScoreGrid({ exam }: { exam: ExamData }): React.JSX.Element {
                 {st.taskSharePct[c] === null || st.taskSharePct[c] === undefined ? '' : String(st.taskSharePct[c])}
               </td>
             ))}
-            <td />
+            {!totalOnly && <td />}
             {rightCols.cols.map((col, i) => (
-              <td key={col.key} className={cx(s.stickyR, i === 0 && s.firstRight)} style={stR(col.key)} />
+              <td key={col.key} className={cx(s.stickyR, i === 0 && s.firstRight, groupCls(col.key))} style={stR(col.key)} />
             ))}
           </tr>
         </tfoot>

@@ -5,12 +5,14 @@ import { compareSchoolYearDesc } from '@shared/schoolYear';
 import { isStepQp, type StepQp } from '@shared/grading/units';
 import { examTitle } from '@shared/labels';
 import { isValidMark } from '@shared/grading/marks';
+import { MAX_HALF_ERRORS } from '@shared/grading/errors';
 import { DEFAULT_CATEGORY_TEMPLATE } from './schema';
 import type {
   BackupCounts,
   RoundingDigits,
   RoundingRule,
   TotalChange,
+  ErrorChange,
   CategoryTemplate,
   EntryMode,
   GradeCategory,
@@ -59,8 +61,11 @@ interface CourseRow {
   class_id: number;
   subject: string;
   grading_system: Scheme;
-  final_rounding: RoundingRule;
+  rounding: RoundingRule;
+  show_final: number;
   final_digits: number;
+  points_weight_c: number;
+  errors_weight_c: number;
   created_at: string;
   updated_at: string;
 }
@@ -85,6 +90,8 @@ interface ExamRow {
   notes: string | null;
   category_id: number | null;
   entry_mode: EntryMode;
+  error_grading: number;
+  per_task: number;
 }
 interface CategoryRow {
   id: number;
@@ -114,8 +121,11 @@ const toCourse = (r: CourseRow): Course => ({
   classId: r.class_id,
   subject: r.subject,
   gradingSystem: r.grading_system,
-  finalRounding: r.final_rounding,
+  rounding: r.rounding,
+  showFinal: r.show_final === 1,
   finalDigits: r.final_digits === 1 ? 1 : 0,
+  pointsWeightC: r.points_weight_c,
+  errorsWeightC: r.errors_weight_c,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
 });
@@ -139,6 +149,8 @@ const toExam = (r: ExamRow): Exam => ({
   notes: r.notes ?? '',
   categoryId: r.category_id,
   entryMode: r.entry_mode,
+  errorGrading: r.error_grading === 1,
+  perTask: r.per_task !== 0,
 });
 const toCategory = (r: CategoryRow): GradeCategory => ({
   id: r.id,
@@ -148,6 +160,9 @@ const toCategory = (r: CategoryRow): GradeCategory => ({
   defaultMode: r.default_mode,
   position: r.position,
 });
+
+/** Label of the single task of a total-only exam. */
+export const TOTAL_TASK_LABEL = 'Gesamt';
 
 /** Validates a category template from the settings JSON; falls back to the default. */
 export function parseCategoryTemplate(raw: string | null | undefined): CategoryTemplate[] {
@@ -183,9 +198,22 @@ export const DEFAULT_SETTINGS: Settings = {
   lastExamId: null,
   defaultGradingSystem: 'LIN6',
   categoryTemplate: DEFAULT_CATEGORY_TEMPLATE.map((t) => ({ ...t })),
-  defaultRounding: 'half_up',
+  defaultRounding: 'truncate',
+  defaultShowFinal: true,
   defaultRoundingDigits: 1,
+  defaultPointsWeightC: 100,
+  defaultErrorsWeightC: 100,
 };
+
+/** Weight setting in hundredths (1 … 10000), else the default. */
+function weightSetting(v: string | undefined, def: number): number {
+  const n = Number(v);
+  return v !== undefined && Number.isInteger(n) && n >= 1 && n <= 10000 ? n : def;
+}
+
+/** Columns of a new course that come from the settings template, in this order. */
+const COURSE_INSERT =
+  'INSERT INTO course(class_id, subject, grading_system, rounding, show_final, final_digits, points_weight_c, errors_weight_c) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
 
 const NOW_SQL = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
 /** Exam rows with class and subject of their course; append WHERE / ORDER BY. */
@@ -228,8 +256,12 @@ export class Repo {
       lastExamId: Number.isInteger(last) && last > 0 ? last : null,
       defaultGradingSystem: pick('defaultGradingSystem', ['NP15', 'LIN6'] as const, 'LIN6'),
       categoryTemplate: parseCategoryTemplate(m.get('categoryTemplate')),
-      defaultRounding: pick('defaultRounding', ['none', 'half_up', 'half_favor'] as const, 'half_up'),
+      defaultRounding: pick('defaultRounding', ['half_up', 'half_favor', 'truncate'] as const, 'truncate'),
+      // Before schema version 5 "no final mark" was the rounding value 'none'.
+      defaultShowFinal: m.has('defaultShowFinal') ? m.get('defaultShowFinal') === '1' : m.get('defaultRounding') !== 'none',
       defaultRoundingDigits: m.get('defaultRoundingDigits') === '0' ? 0 : 1,
+      defaultPointsWeightC: weightSetting(m.get('defaultPointsWeightC'), 100),
+      defaultErrorsWeightC: weightSetting(m.get('defaultErrorsWeightC'), 100),
     };
   }
 
@@ -314,8 +346,8 @@ export class Repo {
       for (const k of this.courses(id)) {
         const cid = Number(
           this.db
-            .prepare('INSERT INTO course(class_id, subject, grading_system, final_rounding, final_digits) VALUES (?, ?, ?, ?, ?)')
-            .run(newId, k.subject, k.gradingSystem, k.finalRounding, k.finalDigits).lastInsertRowid,
+            .prepare(COURSE_INSERT)
+            .run(newId, k.subject, k.gradingSystem, k.rounding, k.showFinal ? 1 : 0, k.finalDigits, k.pointsWeightC, k.errorsWeightC).lastInsertRowid,
         );
         this.db
           .prepare(
@@ -340,7 +372,8 @@ export class Repo {
       scores:
         one(`SELECT COUNT(*) n FROM score s JOIN task t ON t.id = s.task_id WHERE t.exam_id IN (${ofClass})`) +
         one(`SELECT COUNT(*) n FROM mark WHERE exam_id IN (${ofClass})`) +
-        one(`SELECT COUNT(*) n FROM score_total WHERE exam_id IN (${ofClass})`),
+        one(`SELECT COUNT(*) n FROM score_total WHERE exam_id IN (${ofClass})`) +
+        one(`SELECT COUNT(*) n FROM error_count WHERE exam_id IN (${ofClass})`),
     };
   }
 
@@ -395,8 +428,17 @@ export class Repo {
       const st = this.getSettings();
       const id = Number(
         this.db
-          .prepare('INSERT INTO course(class_id, subject, grading_system, final_rounding, final_digits) VALUES (?, ?, ?, ?, ?)')
-          .run(classId, n, st.defaultGradingSystem, st.defaultRounding, st.defaultRoundingDigits).lastInsertRowid,
+          .prepare(COURSE_INSERT)
+          .run(
+            classId,
+            n,
+            st.defaultGradingSystem,
+            st.defaultRounding,
+            st.defaultShowFinal ? 1 : 0,
+            st.defaultRoundingDigits,
+            st.defaultPointsWeightC,
+            st.defaultErrorsWeightC,
+          ).lastInsertRowid,
       );
       const ins = this.db.prepare('INSERT INTO grade_category(course_id, name, weight_c, default_mode, position) VALUES (?, ?, ?, ?, ?)');
       st.categoryTemplate.forEach((t, i) => ins.run(id, t.name, t.weightC, t.defaultMode, i));
@@ -423,7 +465,8 @@ export class Repo {
       scores:
         one('SELECT COUNT(*) n FROM score s JOIN task t ON t.id = s.task_id JOIN exam e ON e.id = t.exam_id WHERE e.course_id = ?') +
         one('SELECT COUNT(*) n FROM mark m JOIN exam e ON e.id = m.exam_id WHERE e.course_id = ?') +
-        one('SELECT COUNT(*) n FROM score_total s JOIN exam e ON e.id = s.exam_id WHERE e.course_id = ?'),
+        one('SELECT COUNT(*) n FROM score_total s JOIN exam e ON e.id = s.exam_id WHERE e.course_id = ?') +
+        one('SELECT COUNT(*) n FROM error_count x JOIN exam e ON e.id = x.exam_id WHERE e.course_id = ?'),
     };
   }
 
@@ -454,10 +497,11 @@ export class Repo {
           `${EXAM_SELECT} WHERE e.course_id = ? AND (
              EXISTS (SELECT 1 FROM score s JOIN task t ON t.id = s.task_id WHERE t.exam_id = e.id AND s.student_id = ?)
              OR EXISTS (SELECT 1 FROM mark m WHERE m.exam_id = e.id AND m.student_id = ?)
-             OR EXISTS (SELECT 1 FROM score_total x WHERE x.exam_id = e.id AND x.student_id = ?))
+             OR EXISTS (SELECT 1 FROM score_total x WHERE x.exam_id = e.id AND x.student_id = ?)
+             OR EXISTS (SELECT 1 FROM error_count f WHERE f.exam_id = e.id AND f.student_id = ?))
            ORDER BY e.exam_date, e.id LIMIT 1`,
         )
-        .get(id, studentId, studentId, studentId) as ExamRow | undefined;
+        .get(id, studentId, studentId, studentId, studentId) as ExamRow | undefined;
       if (used) {
         throw new UserError(
           `${st.last_name}, ${st.first_name} hat in „${examTitle(toExam(used))}“ bereits Ergebnisse. Löschen Sie diese zuerst, um sie bzw. ihn aus dem Fach zu nehmen.`,
@@ -474,15 +518,37 @@ export class Repo {
   }
 
   /**
-   * Grading system and final-mark rounding of a course. Changing the system switches all
-   * exams of the course (point exams are simply re-graded). It is refused while a mark-only
-   * exam holds marks, because those numbers would change their meaning.
+   * Grading system, rounding, final mark and error weights of a course. Changing the system
+   * switches all exams of the course (point exams are simply re-graded). It is refused while a
+   * mark-only exam holds marks, because those numbers would change their meaning, and while an
+   * exam uses error grading, which exists only for grades 1–6.
    */
-  updateCourseGrading(id: number, patch: { gradingSystem?: Scheme; finalRounding?: RoundingRule; finalDigits?: RoundingDigits }): void {
+  updateCourseGrading(
+    id: number,
+    patch: {
+      gradingSystem?: Scheme;
+      rounding?: RoundingRule;
+      showFinal?: boolean;
+      finalDigits?: RoundingDigits;
+      pointsWeightC?: number;
+      errorsWeightC?: number;
+    },
+  ): void {
     this.tx(() => {
       const c = this.getCourse(id);
       const system = patch.gradingSystem ?? c.gradingSystem;
+      for (const w of [patch.pointsWeightC, patch.errorsWeightC]) {
+        if (w !== undefined && (!Number.isInteger(w) || w < 1 || w > 10000)) throw new UserError('Die Gewichtung muss zwischen 0,01 und 100 liegen.');
+      }
       if (system !== c.gradingSystem) {
+        const withErrors = this.db.prepare(`${EXAM_SELECT} WHERE e.course_id = ? AND e.error_grading = 1 ORDER BY e.exam_date, e.id LIMIT 1`).get(id) as
+          | ExamRow
+          | undefined;
+        if (withErrors && system === 'NP15') {
+          throw new UserError(
+            `Das Notensystem kann nicht geändert werden: „${examTitle(toExam(withErrors))}“ verwendet die Fehlerbewertung, die es nur bei Noten 1–6 gibt. Schalten Sie sie dort zuerst aus.`,
+          );
+        }
         const marked = this.db
           .prepare(
             `${EXAM_SELECT} WHERE e.course_id = ? AND e.entry_mode = 'grade' AND e.scheme <> ? AND EXISTS (SELECT 1 FROM mark m WHERE m.exam_id = e.id) ORDER BY e.exam_date, e.id LIMIT 1`,
@@ -496,8 +562,18 @@ export class Repo {
         this.db.prepare(`UPDATE exam SET scheme = ?, updated_at = ${NOW_SQL} WHERE course_id = ?`).run(system, id);
       }
       this.db
-        .prepare(`UPDATE course SET grading_system = ?, final_rounding = ?, final_digits = ?, updated_at = ${NOW_SQL} WHERE id = ?`)
-        .run(system, patch.finalRounding ?? c.finalRounding, patch.finalDigits ?? c.finalDigits, id);
+        .prepare(
+          `UPDATE course SET grading_system = ?, rounding = ?, show_final = ?, final_digits = ?, points_weight_c = ?, errors_weight_c = ?, updated_at = ${NOW_SQL} WHERE id = ?`,
+        )
+        .run(
+          system,
+          patch.rounding ?? c.rounding,
+          (patch.showFinal ?? c.showFinal) ? 1 : 0,
+          patch.finalDigits ?? c.finalDigits,
+          patch.pointsWeightC ?? c.pointsWeightC,
+          patch.errorsWeightC ?? c.errorsWeightC,
+          id,
+        );
     });
   }
 
@@ -613,9 +689,10 @@ export class Repo {
         `SELECT COUNT(*) n, COUNT(DISTINCT exam_id) m FROM (
            SELECT t.exam_id FROM score s JOIN task t ON t.id = s.task_id WHERE s.student_id IN (${ph})
            UNION ALL SELECT exam_id FROM mark WHERE student_id IN (${ph})
-           UNION ALL SELECT exam_id FROM score_total WHERE student_id IN (${ph}))`,
+           UNION ALL SELECT exam_id FROM score_total WHERE student_id IN (${ph})
+           UNION ALL SELECT exam_id FROM error_count WHERE student_id IN (${ph}))`,
       )
-      .get(...ids, ...ids, ...ids) as { n: number; m: number };
+      .get(...ids, ...ids, ...ids, ...ids) as { n: number; m: number };
     return { students, scores: r.n, exams: r.m };
   }
 
@@ -659,6 +736,7 @@ export class Repo {
       .all(examId) as ExamData['scores'];
     const marks = this.db.prepare('SELECT student_id studentId, value FROM mark WHERE exam_id = ?').all(examId) as ExamData['marks'];
     const totals = this.db.prepare('SELECT student_id studentId, points_qp qp FROM score_total WHERE exam_id = ?').all(examId) as ExamData['totals'];
+    const errors = this.db.prepare('SELECT student_id studentId, half_errors halfErrors FROM error_count WHERE exam_id = ?').all(examId) as ExamData['errors'];
     return {
       exam,
       schoolClass: this.getClass(exam.classId),
@@ -668,6 +746,7 @@ export class Repo {
       scores,
       marks,
       totals,
+      errors,
     };
   }
 
@@ -695,10 +774,17 @@ export class Repo {
     return this.tx(() => {
       const scheme = this.getCourse(input.courseId).gradingSystem;
       if (!input.kind.trim()) throw new UserError('Bitte die Art der Prüfung angeben.');
+      const errorGrading = input.entryMode === 'points' && input.errorGrading;
+      if (errorGrading && scheme !== 'LIN6') throw new UserError('Die Fehlerbewertung gibt es nur bei Noten 1–6.');
       const categoryId = this.resolveCategory(input.courseId, input.categoryId);
       let structure: { label: string; maxQp: number }[];
       if (input.entryMode === 'grade') {
         structure = [];
+      } else if (input.perTask === false) {
+        const max = input.totalMaxQp ?? 0;
+        if (!Number.isInteger(max) || max <= 0) throw new UserError('Bitte die Höchstpunktzahl eingeben.');
+        if (max % input.stepQp !== 0) throw new UserError(`Höchstpunktzahl: nur Schritte von ${formatQp(input.stepQp)} erlaubt`);
+        structure = [{ label: TOTAL_TASK_LABEL, maxQp: max }];
       } else if (input.copyFromExamId !== null) {
         structure = this.tasks(input.copyFromExamId).map((t) => ({ label: t.label, maxQp: t.maxQp }));
         if (structure.length === 0) throw new UserError('Die gewählte Prüfung hat keine Aufgaben.');
@@ -714,7 +800,7 @@ export class Repo {
       const id = Number(
         this.db
           .prepare(
-            'INSERT INTO exam(course_id, kind, number, exam_date, teacher, scheme, step_qp, category_id, entry_mode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO exam(course_id, kind, number, exam_date, teacher, scheme, step_qp, category_id, entry_mode, error_grading, per_task) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           )
           .run(
             input.courseId,
@@ -726,6 +812,8 @@ export class Repo {
             input.stepQp,
             categoryId,
             input.entryMode,
+            errorGrading ? 1 : 0,
+            input.entryMode === 'points' && input.perTask === false ? 0 : 1,
           )
           .lastInsertRowid,
       );
@@ -742,12 +830,43 @@ export class Repo {
       if (patch.kind !== undefined && !patch.kind.trim()) throw new UserError('Die Art darf nicht leer sein.');
       if (patch.stepQp !== undefined && patch.stepQp > cur.stepQp) this.assertStepFits(id, patch.stepQp);
       const categoryId = patch.categoryId !== undefined ? this.resolveCategory(cur.courseId, patch.categoryId) : cur.categoryId;
+      if (patch.errorGrading === true && !cur.errorGrading) {
+        if (cur.entryMode !== 'points') throw new UserError('Die Fehlerbewertung gibt es nur bei Prüfungen mit Punkten.');
+        if (cur.scheme !== 'LIN6') throw new UserError('Die Fehlerbewertung gibt es nur bei Noten 1–6.');
+      }
+      if (patch.errorGrading === false && cur.errorGrading) {
+        const n = (this.db.prepare('SELECT COUNT(*) n FROM error_count WHERE exam_id = ?').get(id) as { n: number }).n;
+        if (n > 0) throw new UserError('Es sind bereits Fehler eingetragen. Löschen Sie diese zuerst, um die Fehlerbewertung auszuschalten.');
+      }
+      if (patch.perTask === false && cur.perTask) {
+        // Back to "total only" works while the exam has a single task and no directly entered sums.
+        if (cur.entryMode !== 'points') throw new UserError('Nur bei Prüfungen mit Punkten möglich.');
+        if (this.tasks(id).length !== 1) throw new UserError('Nur die Gesamtpunktzahl ist nur bei genau einer Aufgabe möglich. Löschen Sie zuerst die übrigen Aufgaben.');
+        const n = (this.db.prepare('SELECT COUNT(*) n FROM score_total WHERE exam_id = ?').get(id) as { n: number }).n;
+        if (n > 0) throw new UserError('Es sind Summen direkt eingetragen. Leeren Sie diese zuerst.');
+      }
+      if (patch.perTask === true && !cur.perTask) {
+        // The hidden total becomes an ordinary first task: "Gesamt" makes no sense next to further tasks.
+        this.db.prepare('UPDATE task SET label = ? WHERE exam_id = ? AND label = ?').run('1', id, TOTAL_TASK_LABEL);
+      }
       const next = { ...cur, ...patch };
       this.db
         .prepare(
-          `UPDATE exam SET kind = ?, number = ?, exam_date = ?, teacher = ?, scheme = ?, step_qp = ?, notes = ?, category_id = ?, updated_at = ${NOW_SQL} WHERE id = ?`,
+          `UPDATE exam SET kind = ?, number = ?, exam_date = ?, teacher = ?, scheme = ?, step_qp = ?, notes = ?, category_id = ?, error_grading = ?, per_task = ?, updated_at = ${NOW_SQL} WHERE id = ?`,
         )
-        .run(next.kind.trim(), next.number.trim(), next.examDate, next.teacher.trim(), next.scheme, next.stepQp, next.notes, categoryId, id);
+        .run(
+          next.kind.trim(),
+          next.number.trim(),
+          next.examDate,
+          next.teacher.trim(),
+          next.scheme,
+          next.stepQp,
+          next.notes,
+          categoryId,
+          next.errorGrading ? 1 : 0,
+          next.perTask ? 1 : 0,
+          id,
+        );
     });
   }
 
@@ -791,9 +910,12 @@ export class Repo {
         teacher: e.teacher,
         stepQp: e.stepQp,
         taskCount: 0,
-        copyFromExamId: e.entryMode === 'points' ? id : null,
+        copyFromExamId: e.entryMode === 'points' && e.perTask ? id : null,
+        perTask: e.perTask,
+        totalMaxQp: e.perTask ? undefined : this.totalMax(id),
         categoryId: e.categoryId,
         entryMode: e.entryMode,
+        errorGrading: e.errorGrading,
       });
     });
   }
@@ -841,6 +963,7 @@ export class Repo {
   addTask(examId: number, position: number, label?: string, maxQp?: number): number {
     return this.tx(() => {
       const exam = this.examRow(examId);
+      if (!exam.perTask) throw new UserError('Bei dieser Prüfung wird nur die Gesamtpunktzahl eingetragen. Schalten Sie „Punkte je Aufgabe“ ein, um Aufgaben anzulegen.');
       const ids = this.tasks(examId).map((t) => t.id);
       const pos = Math.max(0, Math.min(position, ids.length));
       const max = maxQp ?? Math.max(4, exam.stepQp);
@@ -1004,6 +1127,35 @@ export class Repo {
         if (c.qp > max) throw new UserError(`Summe: höchstens ${formatQp(max)} Punkte`);
         if (c.qp % exam.stepQp !== 0) throw new UserError(`Nur Schritte von ${formatQp(exam.stepQp)} erlaubt`);
         up.run(examId, c.studentId, c.qp);
+      }
+      this.touchExam(examId);
+    });
+  }
+
+  /** Error counts (exams with error grading), in half errors. */
+  setErrors(examId: number, changes: ErrorChange[]): void {
+    this.tx(() => {
+      const exam = this.examRow(examId);
+      if (!exam.errorGrading) throw new UserError('Diese Prüfung wird ohne Fehlerbewertung bewertet.');
+      const status = new Map(
+        (this.db.prepare('SELECT student_id, status FROM participation WHERE exam_id = ?').all(examId) as { student_id: number; status: ParticipationStatus }[]).map(
+          (r) => [r.student_id, r.status],
+        ),
+      );
+      const up = this.db.prepare(
+        'INSERT INTO error_count(exam_id, student_id, half_errors) VALUES (?, ?, ?) ON CONFLICT(exam_id, student_id) DO UPDATE SET half_errors = excluded.half_errors',
+      );
+      const del = this.db.prepare('DELETE FROM error_count WHERE exam_id = ? AND student_id = ?');
+      for (const c of changes) {
+        const st = status.get(c.studentId);
+        if (st === undefined) throw new UserError('Schüler/in gehört nicht zu dieser Prüfung.');
+        if (st === 'absent') throw new UserError('Für fehlende Schüler/innen können keine Fehler eingetragen werden.');
+        if (c.halfErrors === null) {
+          del.run(examId, c.studentId);
+          continue;
+        }
+        if (!Number.isInteger(c.halfErrors) || c.halfErrors < 0 || c.halfErrors > MAX_HALF_ERRORS) throw new UserError('Fehler: ganze oder halbe Zahl von 0 bis 999,5');
+        up.run(examId, c.studentId, c.halfErrors);
       }
       this.touchExam(examId);
     });

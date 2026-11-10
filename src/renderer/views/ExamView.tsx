@@ -1,10 +1,11 @@
 import { useId, useMemo } from 'react';
-import { buildExamModel } from '@shared/examModel';
+import { buildExamModel, hasErrorGrading } from '@shared/examModel';
 import type { StepQp } from '@shared/grading/units';
 import { EXAM_KINDS } from '@shared/labels';
 import { formatDateDe, parseDateDe } from '@shared/parse/number';
 import type { ExamData, ExamPatch, PrintMode } from '@shared/types';
 import { call } from '../api';
+import { ComboBox } from '../components/ComboBox';
 import { Button, MenuButton, Select, TextInput } from '../components/ui';
 import { MarkGrid } from '../grid/MarkGrid';
 import { useEditField } from '../hooks';
@@ -19,14 +20,15 @@ function MetaText({
   value,
   width,
   onCommit,
-  list,
+  options,
   validate,
 }: {
   label: string;
   value: string;
   width: number;
   onCommit: (v: string) => void;
-  list?: string;
+  /** Suggestions (shown as a combo box). */
+  options?: readonly string[];
   validate?: (v: string) => string | null;
 }): React.JSX.Element {
   const id = useId();
@@ -43,7 +45,22 @@ function MetaText({
   return (
     <span className={e.metaField}>
       <label htmlFor={id}>{label}</label>
-      <TextInput id={id} list={list} style={{ width }} {...field} />
+      {options ? (
+        <ComboBox
+          id={id}
+          width={width}
+          options={options}
+          value={field.value}
+          onChange={(v) => field.onChange({ target: { value: v } } as React.ChangeEvent<HTMLInputElement>)}
+          onPick={(v) => {
+            if (v.trim() !== value.trim()) onCommit(v.trim());
+          }}
+          onBlur={field.onBlur}
+          onKeyDown={field.onKeyDown}
+        />
+      ) : (
+        <TextInput id={id} style={{ width }} {...field} />
+      )}
     </span>
   );
 }
@@ -51,19 +68,20 @@ function MetaText({
 function MetaBar({ exam }: { exam: ExamData }): React.JSX.Element {
   const ex = exam.exam;
   const categories = useStore((s) => s.tree.flatMap((c) => c.courses).find((k) => k.id === ex.courseId)?.categories ?? []);
-  const kindsId = useId();
   const patch = async (p: ExamPatch): Promise<void> => {
     const d = await examWrite(call('exams.update', { id: ex.id, patch: p }));
     if (d && (p.kind !== undefined || p.number !== undefined || p.examDate !== undefined || p.categoryId !== undefined)) await refreshTree();
   };
   return (
     <div className={e.meta} role="group" aria-label="Angaben zur Prüfung">
-      <MetaText label="Art" value={ex.kind} width={130} list={kindsId} onCommit={(v) => void patch({ kind: v })} validate={(v) => (v ? null : 'Die Art darf nicht leer sein.')} />
-      <datalist id={kindsId}>
-        {EXAM_KINDS.map((k) => (
-          <option key={k} value={k} />
-        ))}
-      </datalist>
+      <MetaText
+        label="Art"
+        value={ex.kind}
+        width={150}
+        options={EXAM_KINDS}
+        onCommit={(v) => void patch({ kind: v })}
+        validate={(v) => (v ? null : 'Die Art darf nicht leer sein.')}
+      />
       <MetaText label="Nr." value={ex.number} width={48} onCommit={(v) => void patch({ number: v })} />
       <MetaText
         label="Datum"
@@ -82,6 +100,18 @@ function MetaBar({ exam }: { exam: ExamData }): React.JSX.Element {
             <option value={1}>0,25</option>
           </Select>
         </span>
+      )}
+      {ex.entryMode === 'points' && (
+        <label className={e.checkInline} title="Aus: je Schüler/in wird nur die Gesamtpunktzahl eingetragen">
+          <input type="checkbox" id="meta-pertask" checked={ex.perTask} onChange={(ev) => void patch({ perTask: ev.target.checked })} />
+          Punkte je Aufgabe
+        </label>
+      )}
+      {ex.entryMode === 'points' && ex.scheme === 'LIN6' && (
+        <label className={e.checkInline} title="Zusätzlich die Anzahl der Fehler je Schüler/in erfassen; die Note ergibt sich aus Punkten und Fehlern">
+          <input type="checkbox" id="meta-errors" checked={ex.errorGrading} onChange={(ev) => void patch({ errorGrading: ev.target.checked })} />
+          Fehlerbewertung
+        </label>
       )}
       <span className={e.metaField}>
         <label htmlFor="meta-cat">Kategorie</label>
@@ -204,7 +234,9 @@ function Panel({ exam }: { exam: ExamData }): React.JSX.Element {
       <h2 className={e.panelTitle}>Auswertung</h2>
       {exam.exam.entryMode === 'points' && (
         <div>
-          <div className={e.panelSub}>{exam.exam.scheme === 'NP15' ? 'Notenschlüssel (Notenpunkte)' : 'Notenschlüssel (linear)'}</div>
+          <div className={e.panelSub}>
+            {exam.exam.scheme === 'NP15' ? 'Notenschlüssel (Notenpunkte)' : hasErrorGrading(exam) ? 'Notenschlüssel der Punkte (linear)' : 'Notenschlüssel (linear)'}
+          </div>
           <KeyTable exam={exam} stats={stats} />
         </div>
       )}

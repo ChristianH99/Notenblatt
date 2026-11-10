@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ClassTreeItem, ExamData, MarkChange, ScoreChange, Settings, StartupInfo, TaskSnapshot, TotalChange } from '@shared/types';
+import type { ClassTreeItem, ErrorChange, ExamData, MarkChange, ScoreChange, Settings, StartupInfo, TaskSnapshot, TotalChange } from '@shared/types';
 import type { SettingKey } from '@shared/api';
 import { ApiError, call } from './api';
 
@@ -36,6 +36,7 @@ export type UndoEntry =
   | { kind: 'cells'; changes: { taskId: number; studentId: number; before: number | null; after: number | null }[] }
   | { kind: 'marks'; changes: { studentId: number; before: number | null; after: number | null }[] }
   | { kind: 'totals'; changes: { studentId: number; before: number | null; after: number | null }[] }
+  | { kind: 'errors'; changes: { studentId: number; before: number | null; after: number | null }[] }
   | { kind: 'task-update'; taskId: number; before: { label: string; maxQp: number }; after: { label: string; maxQp: number } }
   | { kind: 'task-add'; taskId: number; snapshot: TaskSnapshot | null }
   | { kind: 'task-delete'; taskId: number; snapshot: TaskSnapshot }
@@ -83,8 +84,11 @@ const DEFAULT_SETTINGS: Settings = {
     { name: 'Schriftlich', weightC: 300, defaultMode: 'points' },
     { name: 'Mündlich', weightC: 100, defaultMode: 'grade' },
   ],
-  defaultRounding: 'half_up',
+  defaultRounding: 'truncate',
+  defaultShowFinal: true,
   defaultRoundingDigits: 1,
+  defaultPointsWeightC: 100,
+  defaultErrorsWeightC: 100,
 };
 
 export const useStore = create<State>(() => ({
@@ -264,6 +268,18 @@ export function applyLocalTotals(changes: TotalChange[]): void {
   set({ exam: { ...exam, totals: [...m.values()] } });
 }
 
+/** Applies a local (optimistic) change of error counts to the open exam. */
+export function applyLocalErrors(changes: ErrorChange[]): void {
+  const exam = get().exam;
+  if (!exam) return;
+  const m = new Map(exam.errors.map((x) => [x.studentId, x]));
+  for (const c of changes) {
+    if (c.halfErrors === null) m.delete(c.studentId);
+    else m.set(c.studentId, { studentId: c.studentId, halfErrors: c.halfErrors });
+  }
+  set({ exam: { ...exam, errors: [...m.values()] } });
+}
+
 let pendingWrites = 0;
 
 /**
@@ -315,7 +331,7 @@ export function clearAllUndo(): void {
 
 function remapTask(examId: number, from: number, to: number): void {
   const fix = (e: UndoEntry): UndoEntry => {
-    if (e.kind === 'marks' || e.kind === 'totals') return e;
+    if (e.kind === 'marks' || e.kind === 'totals' || e.kind === 'errors') return e;
     if (e.kind === 'cells') return { ...e, changes: e.changes.map((c) => (c.taskId === from ? { ...c, taskId: to } : c)) };
     return { ...e, taskId: e.taskId === from ? to : e.taskId };
   };
@@ -335,6 +351,8 @@ async function applyEntry(examId: number, e: UndoEntry, dir: 'undo' | 'redo'): P
       return call('marks.set', { examId, changes: e.changes.map((c) => ({ studentId: c.studentId, value: dir === 'undo' ? c.before : c.after })) });
     case 'totals':
       return call('totals.set', { examId, changes: e.changes.map((c) => ({ studentId: c.studentId, qp: dir === 'undo' ? c.before : c.after })) });
+    case 'errors':
+      return call('errors.set', { examId, changes: e.changes.map((c) => ({ studentId: c.studentId, halfErrors: dir === 'undo' ? c.before : c.after })) });
     case 'task-update': {
       const v = dir === 'undo' ? e.before : e.after;
       return call('tasks.update', { id: e.taskId, label: v.label, maxQp: v.maxQp });
@@ -380,6 +398,9 @@ async function undoRedoNow(dir: 'undo' | 'redo'): Promise<void> {
   }
   if (entry.kind === 'totals') {
     applyLocalTotals(entry.changes.map((c) => ({ studentId: c.studentId, qp: dir === 'undo' ? c.before : c.after })));
+  }
+  if (entry.kind === 'errors') {
+    applyLocalErrors(entry.changes.map((c) => ({ studentId: c.studentId, halfErrors: dir === 'undo' ? c.before : c.after })));
   }
   if (entry.kind === 'marks') {
     applyLocalMarks(entry.changes.map((c) => ({ studentId: c.studentId, value: dir === 'undo' ? c.before : c.after })));

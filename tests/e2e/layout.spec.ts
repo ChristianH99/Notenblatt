@@ -26,7 +26,7 @@ async function seed(page: Page): Promise<number> {
   await invoke(page, 'courses.create', { classId, subject: 'Physik' });
   const examId = await invoke<number>(page, 'exams.create', {
     courseId, kind: 'Schulaufgabe', number: '1', examDate: '2025-11-20', teacher: 'Frau Huber',
-    stepQp: 2, taskCount: 10, copyFromExamId: null, categoryId: null, entryMode: 'points',
+    stepQp: 2, taskCount: 10, copyFromExamId: null, categoryId: null, entryMode: 'points', errorGrading: false,
   });
   let data = await invoke<ExamDataLite>(page, 'exams.get', { id: examId });
   const max = [6, 4, 8, 5, 3, 6, 4, 7, 5, 2];
