@@ -17,11 +17,21 @@ export interface App {
   dataDir: string;
 }
 
-export async function launch(dataDir: string, size = { width: 1280, height: 720 }): Promise<App> {
+export interface LaunchOptions {
+  /** Show the first-start tour (otherwise a new data folder starts with it marked as done). */
+  onboarding?: boolean;
+  /** Extra environment, e.g. NOTENBLATT_UPDATE_URL. */
+  env?: Record<string, string>;
+}
+
+export async function launch(dataDir: string, size = { width: 1280, height: 720 }, opts: LaunchOptions = {}): Promise<App> {
   const env: Record<string, string> = {};
-  for (const [k, v] of Object.entries(process.env)) if (v !== undefined && k !== 'ELECTRON_RUN_AS_NODE') env[k] = v;
+  for (const [k, v] of Object.entries(process.env)) if (v !== undefined && k !== 'ELECTRON_RUN_AS_NODE' && !k.startsWith('NOTENBLATT_')) env[k] = v;
   env.NOTENBLATT_USER_DATA = dataDir;
   env.NOTENBLATT_E2E = '1';
+  Object.assign(env, opts.env);
+  const config = path.join(dataDir, 'config.json');
+  if (!opts.onboarding && !fs.existsSync(config)) fs.writeFileSync(config, JSON.stringify({ version: 1, dbDir: null, onboarding: 'done' }));
   const app = await _electron.launch({ args: [ROOT], cwd: ROOT, env });
   const page = await app.firstWindow();
   await page.setViewportSize(size);

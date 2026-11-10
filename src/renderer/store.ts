@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import type { ClassTreeItem, ErrorChange, ExamData, MarkChange, ScoreChange, Settings, StartupInfo, TaskSnapshot, TotalChange } from '@shared/types';
 import type { SettingKey } from '@shared/api';
+import type { UpdateOffer } from '@shared/update';
+import type { GradingRules } from './views/CourseGrading';
 import { ApiError, call } from './api';
 
 export type CourseTab = 'overview' | 'exams' | 'grading';
@@ -30,7 +32,9 @@ export type DialogState =
   | { kind: 'storageLocation' }
   | { kind: 'encrypt' }
   | { kind: 'changePassword' }
-  | { kind: 'decrypt' };
+  | { kind: 'decrypt' }
+  | { kind: 'onboarding' }
+  | { kind: 'update'; offer: UpdateOffer };
 
 export type UndoEntry =
   | { kind: 'cells'; changes: { taskId: number; studentId: number; before: number | null; after: number | null }[] }
@@ -62,6 +66,8 @@ interface State {
   save: { state: 'idle' | 'saved' | 'error'; error: string };
   flash: Flash | null;
   dialog: DialogState | null;
+  /** Update found by the check on start while another dialog was open; shown when it closes. */
+  pendingUpdate: UpdateOffer | null;
   navPref: 'auto' | 'open' | 'closed';
   panelHidden: boolean;
   retentionDismissed: boolean;
@@ -102,6 +108,7 @@ export const useStore = create<State>(() => ({
   save: { state: 'idle', error: '' },
   flash: null,
   dialog: null,
+  pendingUpdate: null,
   navPref: 'auto',
   panelHidden: false,
   retentionDismissed: false,
@@ -182,6 +189,8 @@ export async function init(): Promise<void> {
   const [settings, tree] = await Promise.all([call('settings.get'), call('classes.tree')]);
   set({ startup, settings, tree, ready: true });
   if (startup.corrupt) set({ dialog: { kind: 'corrupt', renamedTo: startup.corrupt.renamedTo } });
+  else if (startup.onboarding) set({ dialog: { kind: 'onboarding' } });
+  void checkForUpdateOnStart();
   if (settings.lastExamId !== null) {
     const ok = await openExam(settings.lastExamId, { remember: false });
     if (ok) return;
@@ -189,9 +198,47 @@ export async function init(): Promise<void> {
   set({ route: { view: 'home' } });
 }
 
+let startCheckDone = false;
+
+/** The automatic update check, once per app start (not again after a reload of the data). */
+async function checkForUpdateOnStart(): Promise<void> {
+  if (startCheckDone) return;
+  startCheckDone = true;
+  try {
+    const r = await call('update.check', { auto: true });
+    if (r.status !== 'available') return;
+    if (get().dialog) set({ pendingUpdate: r.offer });
+    else set({ dialog: { kind: 'update', offer: r.offer } });
+  } catch {
+    // Offline or GitHub unreachable: say nothing on start.
+  }
+}
+
 export async function setSetting(key: SettingKey, value: string | null): Promise<void> {
   const settings = await save(call('settings.set', { key, value }));
   if (settings) set({ settings });
+}
+
+/** Grading rules of the template for new courses (settings page and first-start tour). */
+export async function setTemplateRules(p: Partial<GradingRules>): Promise<void> {
+  if (p.gradingSystem !== undefined) await setSetting('defaultGradingSystem', p.gradingSystem);
+  if (p.rounding !== undefined) await setSetting('defaultRounding', p.rounding);
+  if (p.showFinal !== undefined) await setSetting('defaultShowFinal', p.showFinal ? '1' : '0');
+  if (p.finalDigits !== undefined) await setSetting('defaultRoundingDigits', String(p.finalDigits));
+  if (p.pointsWeightC !== undefined) await setSetting('defaultPointsWeightC', String(p.pointsWeightC));
+  if (p.errorsWeightC !== undefined) await setSetting('defaultErrorsWeightC', String(p.errorsWeightC));
+}
+
+/** The template's grading rules as edited by GradingRuleFields. */
+export function templateRules(st: Settings): GradingRules {
+  return {
+    gradingSystem: st.defaultGradingSystem,
+    rounding: st.defaultRounding,
+    showFinal: st.defaultShowFinal,
+    finalDigits: st.defaultRoundingDigits,
+    pointsWeightC: st.defaultPointsWeightC,
+    errorsWeightC: st.defaultErrorsWeightC,
+  };
 }
 
 export function navigate(route: Route): void {

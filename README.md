@@ -8,7 +8,8 @@ Notenblatt is an offline Windows app for German teachers to grade exams. It repl
 - **Whole-class grade book:** written exams with points and oral marks ("Nur Note"), weighted by category (e.g. written : oral = 3 : 1), with a weighted overall average and final mark per student.
 - Optional **AES-256 encryption** of the database and a **custom storage folder**, e.g. on a network share used by several devices (one at a time).
 - Print and PDF in the layout of the grading sheet, anonymous grade distribution ("Notenspiegel") for the class, CSV export for Excel.
-- Runs fully **offline**. All data stays on the device.
+- Runs **offline**. All data stays on the device; the only network access is the optional update check against this repository's GitHub releases.
+- Short first-start tour and **in-app updates** with the release notes shown before installing.
 
 ## Installation
 

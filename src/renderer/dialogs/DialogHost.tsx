@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useStore } from '../store';
 import { ClassDialog } from './ClassDialog';
 import { CourseDialog } from './CourseDialog';
@@ -5,11 +6,18 @@ import { BackupExportDialog, BackupImportDialog, CorruptDialog, WipeDialog } fro
 import { DeleteClassDialog, DeleteCourseDialog, DeleteExamDialog, DeleteStudentsDialog } from './DeleteDialogs';
 import { FullKeyDialog } from './FullKeyDialog';
 import { NewExamDialog } from './NewExamDialog';
+import { OnboardingDialog } from './OnboardingDialog';
 import { ChangePasswordDialog, DecryptDialog, EncryptDialog, LocationDialog } from './StorageDialogs';
+import { UpdateDialog } from './UpdateDialog';
 
 export function DialogHost(): React.JSX.Element | null {
   const d = useStore((s) => s.dialog);
+  const pendingUpdate = useStore((s) => s.pendingUpdate);
   const close = (): void => useStore.setState({ dialog: null });
+  // An update found on start waits until the dialog in front of it (e.g. the tour) is closed.
+  useEffect(() => {
+    if (!d && pendingUpdate) useStore.setState({ dialog: { kind: 'update', offer: pendingUpdate }, pendingUpdate: null });
+  }, [d, pendingUpdate]);
   if (!d) return null;
   switch (d.kind) {
     case 'newClass':
@@ -44,5 +52,9 @@ export function DialogHost(): React.JSX.Element | null {
       return <ChangePasswordDialog onClose={close} />;
     case 'decrypt':
       return <DecryptDialog onClose={close} />;
+    case 'onboarding':
+      return <OnboardingDialog onClose={close} />;
+    case 'update':
+      return <UpdateDialog offer={d.offer} onClose={close} />;
   }
 }

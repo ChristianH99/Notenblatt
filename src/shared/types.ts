@@ -269,6 +269,8 @@ export interface StartupInfo {
   isEmpty: boolean;
   storage: StorageState;
   info: StorageInfo;
+  /** Show the first-start tour (config.json, per device). */
+  onboarding: boolean;
 }
 
 export interface BackupCounts {
