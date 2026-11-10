@@ -23,6 +23,11 @@
   align-items: center;
 }
 
+.path {
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
 .summary {
   margin: 0;
   color: var(--c-text-2);

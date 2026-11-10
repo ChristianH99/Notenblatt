@@ -9,7 +9,7 @@ import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import { invoke, launch, netLog, SCREENSHOTS, tempDir } from './helpers';
 
-const tour = (page: Page) => page.getByRole('dialog', { name: /Willkommen bei Notenblatt|Notenvorgaben prüfen|Updates|So geht es los/ });
+const tour = (page: Page) => page.getByRole('dialog', { name: /Willkommen bei Notenblatt|Notenvorgaben prüfen|Speicherort und Verschlüsselung|Updates|So geht es los/ });
 const config = (dir: string): Record<string, unknown> => JSON.parse(fs.readFileSync(path.join(dir, 'config.json'), 'utf8')) as Record<string, unknown>;
 
 test('tour on first start: settings saved, finished once and never again', async () => {
@@ -17,7 +17,7 @@ test('tour on first start: settings saved, finished once and never again', async
   let { app, page } = await launch(dir, undefined, { onboarding: true });
   const dlg = tour(page);
   await expect(dlg).toHaveAccessibleName('Willkommen bei Notenblatt');
-  await expect(dlg).toContainText('Schritt 1 von 4');
+  await expect(dlg).toContainText('Schritt 1 von 5');
   await dlg.getByLabel('Lehrkraft').fill('Fr. Qzwx');
   await dlg.getByLabel('Schule').fill('Testschule Qzwx');
   await fs.promises.mkdir(SCREENSHOTS, { recursive: true });
@@ -29,10 +29,18 @@ test('tour on first start: settings saved, finished once and never again', async
   await dlg.locator('#onb-system').selectOption('NP15');
   await dlg.getByRole('button', { name: 'Weiter' }).click();
 
+  await expect(dlg).toHaveAccessibleName('Speicherort und Verschlüsselung');
+  await expect(dlg.getByTestId('onb-storage-dir')).toContainText(dir);
+  await expect(dlg.getByTestId('onb-storage-dir')).toContainText('(Standardordner)');
+  await expect(dlg).toContainText('Verschlüsselung');
+  await expect(dlg).toContainText('Aus');
+  await page.screenshot({ path: path.join(SCREENSHOTS, 'onboarding-3.png') });
+  await dlg.getByRole('button', { name: 'Weiter' }).click();
+
   await expect(dlg).toHaveAccessibleName('Updates');
   await expect(dlg.getByLabel('Beim Start nach Updates suchen')).toBeChecked();
   await dlg.getByRole('button', { name: 'Zurück' }).click();
-  await expect(dlg).toHaveAccessibleName('Notenvorgaben prüfen');
+  await expect(dlg).toHaveAccessibleName('Speicherort und Verschlüsselung');
   await dlg.getByRole('button', { name: 'Weiter' }).click();
   await dlg.getByRole('button', { name: 'Weiter' }).click();
 

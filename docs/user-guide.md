@@ -6,7 +6,7 @@ For installation see the [README](../README.md#installation).
 
 ## First steps (about 2 minutes)
 
-On the first start a short tour (four steps, about a minute) asks for your name and school, shows the grading defaults for new subjects and explains classes, subjects and the kinds of exams. "Überspringen" shows it again on the next start; tick "Nicht mehr anzeigen" to skip it for good. Settings → "Einführung anzeigen" opens it again.
+On the first start a short tour (five steps, about a minute) asks for your name and school, shows the grading defaults for new subjects, where your data is stored and how to encrypt it, and explains classes, subjects and the kinds of exams. "Überspringen" shows it again on the next start; tick "Nicht mehr anzeigen" to skip it for good. Settings → "Einführung anzeigen" opens it again.
 
 1. **Create a class** – enter a name (e.g. `F-A11a`) and the school year.
 2. **Paste names** – in the class, click "Namen einfügen…" and paste the name list, e.g. copied from Excel or ASV. One line per student:

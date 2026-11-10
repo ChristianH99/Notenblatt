@@ -6,15 +6,17 @@ import { setSetting, setTemplateRules, templateRules, useStore } from '../store'
 import { GradingRuleFields } from '../views/CourseGrading';
 import g from './guide.module.css';
 
-const STEPS = ['Willkommen bei Notenblatt', 'Notenvorgaben prüfen', 'Updates', 'So geht es los'] as const;
+const STEPS = ['Willkommen bei Notenblatt', 'Notenvorgaben prüfen', 'Speicherort und Verschlüsselung', 'Updates', 'So geht es los'] as const;
 
 /**
- * First-start tour (about a minute): name and school, the grading template, the update
- * check, then how classes, subjects and exams fit together. Shown until it is finished or
+ * First-start tour (about a minute): name and school, the grading template, where the
+ * data is stored and how to encrypt it, the update check, then how classes, subjects and
+ * exams fit together. Shown until it is finished or
  * skipped with "Nicht mehr anzeigen"; settings → "Einführung anzeigen" opens it again.
  */
 export function OnboardingDialog({ onClose }: { onClose: () => void }): React.JSX.Element {
   const st = useStore((x) => x.settings);
+  const storage = useStore((x) => x.startup?.info);
   const [step, setStep] = useState(0);
   const [teacher, setTeacher] = useState(st.teacher);
   const [school, setSchool] = useState(st.school);
@@ -75,7 +77,7 @@ export function OnboardingDialog({ onClose }: { onClose: () => void }): React.JS
     >
       {step === 0 && (
         <>
-          <p className={g.lead}>In vier kurzen Schritten ist Notenblatt eingerichtet. Alles lässt sich später unter „Einstellungen“ ändern.</p>
+          <p className={g.lead}>In fünf kurzen Schritten ist Notenblatt eingerichtet. Alles lässt sich später unter „Einstellungen“ ändern.</p>
           <div className={g.formGrid}>
             <label htmlFor="onb-teacher">Lehrkraft</label>
             <TextInput id="onb-teacher" autoFocus value={teacher} placeholder="z. B. Fr. Muster" onChange={(e) => setTeacher(e.target.value)} />
@@ -100,6 +102,26 @@ export function OnboardingDialog({ onClose }: { onClose: () => void }): React.JS
 
       {step === 2 && (
         <>
+          <p className={g.lead}>Ihre Daten liegen in einer Datei auf diesem Gerät:</p>
+          <div className={g.formGrid}>
+            <span>Speicherort</span>
+            <span className={g.path} data-testid="onb-storage-dir">
+              {storage?.dir}
+              {storage?.isDefault ? ' (Standardordner)' : ''}
+            </span>
+            <span>Verschlüsselung</span>
+            <span>{storage?.encrypted ? 'An – AES-256, Passwort beim Start' : 'Aus'}</span>
+          </div>
+          <p className={g.summary}>
+            Mit einem Passwort wird die Datenbank verschlüsselt (AES-256) – empfohlen für Laptops und Netzlaufwerke. Ohne das Passwort lassen sich die Daten nicht
+            wiederherstellen. Das Passwort und einen anderen Ordner, z. B. ein Netzlaufwerk für mehrere Geräte, richten Sie unter „Einstellungen“ → „Speicherort und
+            Verschlüsselung“ ein.
+          </p>
+        </>
+      )}
+
+      {step === 3 && (
+        <>
           <p className={g.lead}>Notenblatt kann beim Start prüfen, ob es eine neue Version gibt. Vor der Installation sehen Sie, was sich geändert hat.</p>
           {autoCheck !== null && (
             <Checkbox
@@ -119,7 +141,7 @@ export function OnboardingDialog({ onClose }: { onClose: () => void }): React.JS
         </>
       )}
 
-      {step === 3 && (
+      {step === 4 && (
         <>
           <ol className={g.list}>
             <li>
