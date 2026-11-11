@@ -94,11 +94,15 @@ export function GradingRuleFields({
       {showErrorWeights && (
         <>
           <label htmlFor={`${idPrefix}-wpoints`}>Fehlerbewertung</label>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            Punkte ×
-            <WeightInput id={`${idPrefix}-wpoints`} label="Gewicht der Note aus den Punkten" value={value.pointsWeightC} onCommit={(w) => onChange({ pointsWeightC: w })} />
-            : Fehler ×
-            <WeightInput id={`${idPrefix}-werrors`} label="Gewicht der Note aus den Fehlern" value={value.errorsWeightC} onCommit={(w) => onChange({ errorsWeightC: w })} />
+          <span style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              Punkte ×
+              <WeightInput id={`${idPrefix}-wpoints`} label="Gewicht der Note aus den Punkten" value={value.pointsWeightC} onCommit={(w) => onChange({ pointsWeightC: w })} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              Fehler ×
+              <WeightInput id={`${idPrefix}-werrors`} label="Gewicht der Note aus den Fehlern" value={value.errorsWeightC} onCommit={(w) => onChange({ errorsWeightC: w })} />
+            </span>
           </span>
         </>
       )}
