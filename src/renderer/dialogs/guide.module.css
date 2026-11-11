@@ -5,11 +5,13 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  white-space: nowrap;
 }
 
 .stepCount {
+  margin-top: -6px;
   color: var(--c-text-2);
-  font-size: var(--fs-13);
+  font-size: var(--fs-12);
 }
 
 .lead {
@@ -21,6 +23,36 @@
   grid-template-columns: 160px minmax(0, 1fr);
   gap: 10px 16px;
   align-items: center;
+}
+
+.weights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+
+.weight {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pathRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pathRow .path {
+  flex: 1;
+  min-width: 0;
+}
+
+.fieldCol {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .path {

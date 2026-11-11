@@ -24,7 +24,7 @@ export interface GradingRules {
   errorsWeightC: number;
 }
 
-function WeightInput({ id, label, value, onCommit }: { id: string; label: string; value: number; onCommit: (weightC: number) => void }): React.JSX.Element {
+export function WeightInput({ id, label, value, onCommit }: { id: string; label: string; value: number; onCommit: (weightC: number) => void }): React.JSX.Element {
   const field = useEditField(formatWeight(value), (raw) => {
     const w = parseWeight(raw);
     if (w === null) {

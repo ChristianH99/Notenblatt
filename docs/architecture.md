@@ -71,7 +71,7 @@ All points are integers in quarter points (`qp`, 1 point = 4 qp). Grade decision
 ## Security / privacy invariants
 
 - No network from the window: `session.webRequest.onBeforeRequest` cancels everything that is not `file:`, `devtools:`, `data:` or `blob:` (plus localhost in dev). Blocked URLs are recorded in `globalThis.__nbNetLog`; every E2E test asserts it is empty.
-- The only network access is the update check in `update/updater.ts`: main process only, its own in-memory session, `https://` to the GitHub hosts in `UPDATE_HOSTS` (`src/shared/update.ts`) only, every redirect checked, no app data in the request. Downloads are verified against the release asset's SHA-256 digest before the installer runs (decisions 85–89).
+- The only network access is the update check in `update/updater.ts`: main process only, its own in-memory session, `https://` to the GitHub hosts in `UPDATE_HOSTS` (`src/shared/update.ts`) only, every redirect checked, no app data in the request. Downloads are verified against the release asset's SHA-256 digest before the installer runs (decisions 101–105).
 - Renderer storage is never used (ESLint forbids `localStorage`/`sessionStorage`/`indexedDB` in `src/renderer`). The window session is an in-memory partition.
 - Logs (`src/main/log.ts`) accept only numbers and identifier-like strings, go to stderr only, never to a file.
 - Packaged builds burn Electron fuses (no run-as-Node, no `NODE_OPTIONS`/`--inspect`, app only from an integrity-checked `app.asar`) and ignore the `NOTENBLATT_*` development variables (`devEnv()` in `src/main/index.ts`).
