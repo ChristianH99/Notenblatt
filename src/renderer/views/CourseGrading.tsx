@@ -40,17 +40,20 @@ export function WeightInput({ id, label, value, onCommit }: { id: string; label:
 /**
  * Form rows (for a formGrid) for grading system, rounding, final mark and the error weights.
  * Ids are `${idPrefix}-system`, `-rounding`, `-final`, `-wpoints`, `-werrors`.
+ * `beforeErrorWeights`: extra rows between the final mark and the error weights.
  */
 export function GradingRuleFields({
   idPrefix,
   value,
   onChange,
   showErrorWeights,
+  beforeErrorWeights,
 }: {
   idPrefix: string;
   value: GradingRules;
   onChange: (patch: Partial<GradingRules>) => void;
   showErrorWeights: boolean;
+  beforeErrorWeights?: React.ReactNode;
 }): React.JSX.Element {
   const np = value.gradingSystem === 'NP15';
   return (
@@ -87,6 +90,7 @@ export function GradingRuleFields({
         )}
         <option value="none">Keine Endnote (nur Durchschnitt anzeigen)</option>
       </Select>
+      {beforeErrorWeights}
       {showErrorWeights && (
         <>
           <label htmlFor={`${idPrefix}-wpoints`}>Fehlerbewertung</label>

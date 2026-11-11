@@ -172,16 +172,25 @@ export function OnboardingDialog({ onClose }: { onClose: () => void }): React.JS
         <>
           <p className={g.lead}>Diese Vorgaben übernimmt jedes neue Fach.</p>
           <div className={g.formGrid}>
-            <span>Gewichtung</span>
-            <span className={g.weights}>
-              {st.categoryTemplate.map((c, i) => (
-                <span key={`${i}-${c.name}`} className={g.weight}>
-                  {c.name} ×
-                  <WeightInput id={`onb-cat-${i}`} label={`Gewicht ${c.name}`} value={c.weightC} onCommit={(w) => saveTemplateWeight(i, w)} />
-                </span>
-              ))}
-            </span>
-            <GradingRuleFields idPrefix="onb" showErrorWeights value={templateRules(st)} onChange={(p) => void setTemplateRules(p)} />
+            <GradingRuleFields
+              idPrefix="onb"
+              showErrorWeights
+              value={templateRules(st)}
+              onChange={(p) => void setTemplateRules(p)}
+              beforeErrorWeights={
+                <>
+                  <span>Gewichtung</span>
+                  <span className={g.weights}>
+                    {st.categoryTemplate.map((c, i) => (
+                      <span key={`${i}-${c.name}`} className={g.weight}>
+                        {c.name} ×
+                        <WeightInput id={`onb-cat-${i}`} label={`Gewicht ${c.name}`} value={c.weightC} onCommit={(w) => saveTemplateWeight(i, w)} />
+                      </span>
+                    ))}
+                  </span>
+                </>
+              }
+            />
           </div>
           <p className={g.summary}>
             Gewichtung: Anteil der Kategorien am Gesamtdurchschnitt, z. B. schriftlich : mündlich = 3 : 1. Fehlerbewertung: Verhältnis der Note aus den Punkten zur
