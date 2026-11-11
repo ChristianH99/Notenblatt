@@ -10,6 +10,8 @@ import { BackupError } from '../backup/crypto';
 import { DbManager } from '../db/manager';
 import { UserError } from '../db/repo';
 import { markPrintReady, printToPdf, printWithDialog, type PrintDeps } from '../print/print';
+import { readConfig, updateConfig } from '../storage/config';
+import type { Updater } from '../update/updater';
 import { log } from '../log';
 import { CATEGORY_TEMPLATE, SCHEMAS } from './schemas';
 
@@ -18,6 +20,10 @@ export interface HandlerContext {
   mainWindow: () => BrowserWindow | null;
   print: PrintDeps;
   partition: string;
+  userData: string;
+  updater: Updater;
+  /** Quits the app and then runs the verified update installer. */
+  quitForUpdate: (installer: string) => void;
 }
 
 type Impl = { [K in ApiMethod]: (arg: ApiArg<K>, e: IpcMainInvokeEvent) => ReturnType<ApiMethods[K]> | Promise<ReturnType<ApiMethods[K]>> };
@@ -47,6 +53,24 @@ export function createImpl(ctx: HandlerContext): Impl {
     return r.canceled || !r.filePath ? null : r.filePath;
   };
 
+  /**
+   * First-start tour. Decided once per device, on the first start with an open database:
+   * shown for an empty database, never for a device that already has classes.
+   */
+  const showOnboarding = (): boolean => {
+    if (!ctx.mgr.ready) return false;
+    try {
+      let state = readConfig(ctx.userData).onboarding;
+      if (state === undefined) {
+        state = repo().isEmpty() ? 'pending' : 'done';
+        updateConfig(ctx.userData, { onboarding: state });
+      }
+      return state === 'pending';
+    } catch {
+      return false;
+    }
+  };
+
   const clearBackupState = (): void => {
     backupPayload?.fill(0);
     backupPayload = null;
@@ -60,6 +84,7 @@ export function createImpl(ctx: HandlerContext): Impl {
       isEmpty: ctx.mgr.ready ? repo().isEmpty() : true,
       storage: ctx.mgr.status,
       info: ctx.mgr.info(),
+      onboarding: showOnboarding(),
     }),
     'app.openDataFolder': () => {
       void shell.openPath(ctx.mgr.dir);
@@ -77,6 +102,37 @@ export function createImpl(ctx: HandlerContext): Impl {
         // ignore
       }
     },
+    'onboarding.finish': ({ done }) => {
+      updateConfig(ctx.userData, { onboarding: done ? 'done' : 'pending' });
+    },
+    'update.prefs': () => ({
+      enabled: ctx.updater.enabled,
+      version: app.getVersion(),
+      autoCheck: readConfig(ctx.userData).autoUpdateCheck !== false,
+    }),
+    'update.setAutoCheck': ({ on }) => {
+      updateConfig(ctx.userData, { autoUpdateCheck: on });
+    },
+    'update.check': async ({ auto }) => {
+      if (!ctx.updater.enabled) return { status: 'off' };
+      const cfg = readConfig(ctx.userData);
+      if (auto && cfg.autoUpdateCheck === false) return { status: 'off' };
+      const r = await ctx.updater.check();
+      if (auto && r.status === 'available' && r.offer.version === cfg.skippedVersion) return { status: 'current' };
+      return r;
+    },
+    'update.skip': ({ version }) => {
+      updateConfig(ctx.userData, { skippedVersion: version });
+    },
+    'update.install': async ({ version }) => {
+      const win = ctx.mainWindow();
+      const installer = await ctx.updater.download(version, (received, total) => {
+        if (win && !win.isDestroyed()) win.webContents.send('update-progress', { received, total });
+      });
+      // Give the renderer a moment to show "Wird installiert …" before the window closes.
+      if (installer) setTimeout(() => ctx.quitForUpdate(installer), 300);
+    },
+    'update.cancel': () => ctx.updater.cancel(),
     'settings.get': () => repo().getSettings(),
     'settings.set': ({ key, value }) => {
       if (key === 'categoryTemplate') {
@@ -294,6 +350,13 @@ const NO_PERSIST = new Set<string>([
   'app.startupInfo',
   'app.openDataFolder',
   'app.wipeAll',
+  'onboarding.finish',
+  'update.prefs',
+  'update.setAutoCheck',
+  'update.check',
+  'update.skip',
+  'update.install',
+  'update.cancel',
   'settings.get',
   'classes.tree',
   'classes.deletionInfo',

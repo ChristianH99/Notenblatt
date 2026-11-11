@@ -14,7 +14,9 @@ src/main/        Electron main process
   db/manager.ts    owns the connection and the storage mode (see below): start/unlock, persist,
                    relocate, enable/disable encryption, wipe, backup export/import
   storage/lock.ts  lock file with heartbeat (one device at a time on a shared folder)
-  storage/config.ts config.json: database folder + window position (readable before the DB opens)
+  storage/config.ts config.json: database folder, window position, tour state, update preferences
+                   (readable before the DB opens)
+  update/updater.ts update check and install from GitHub releases (own session, host allowlist, SHA-256)
   backup/crypto.ts AES-256-GCM container (backups and encrypted DB), key via scrypt (Node crypto only)
   ipc/schemas.ts   zod schema for every IPC payload
   ipc/handlers.ts  one "api" channel → typed method table; secure cleanup after deletes
@@ -68,7 +70,8 @@ All points are integers in quarter points (`qp`, 1 point = 4 qp). Grade decision
 
 ## Security / privacy invariants
 
-- No network: `session.webRequest.onBeforeRequest` cancels everything that is not `file:`, `devtools:`, `data:` or `blob:` (plus localhost in dev). Blocked URLs are recorded in `globalThis.__nbNetLog`; every E2E test asserts it is empty.
+- No network from the window: `session.webRequest.onBeforeRequest` cancels everything that is not `file:`, `devtools:`, `data:` or `blob:` (plus localhost in dev). Blocked URLs are recorded in `globalThis.__nbNetLog`; every E2E test asserts it is empty.
+- The only network access is the update check in `update/updater.ts`: main process only, its own in-memory session, `https://` to the GitHub hosts in `UPDATE_HOSTS` (`src/shared/update.ts`) only, every redirect checked, no app data in the request. Downloads are verified against the release asset's SHA-256 digest before the installer runs (decisions 101–105).
 - Renderer storage is never used (ESLint forbids `localStorage`/`sessionStorage`/`indexedDB` in `src/renderer`). The window session is an in-memory partition.
 - Logs (`src/main/log.ts`) accept only numbers and identifier-like strings, go to stderr only, never to a file.
 - Packaged builds burn Electron fuses (no run-as-Node, no `NODE_OPTIONS`/`--inspect`, app only from an integrity-checked `app.asar`) and ignore the `NOTENBLATT_*` development variables (`devEnv()` in `src/main/index.ts`).

@@ -7,6 +7,7 @@ import { DbManager } from './db/manager';
 import { readConfig, writeConfig } from './storage/config';
 import { registerIpc } from './ipc/handlers';
 import { log } from './log';
+import { Updater } from './update/updater';
 
 const PARTITION = 'notenblatt'; // no "persist:" prefix → in-memory session, nothing cached on disk
 const MIN_W = 1024;
@@ -21,7 +22,7 @@ const userData = devEnv('NOTENBLATT_USER_DATA') || path.join(app.getPath('appDat
 app.setPath('userData', userData);
 app.setPath('sessionData', path.join(userData, 'session'));
 
-// No crash reporter upload, no telemetry, no auto-updater: none are started.
+// No crash reporter upload, no telemetry. The only network access is the update check (update/updater.ts).
 app.commandLine.appendSwitch('disable-features', 'Translate,MediaRouter,OptimizationHints,AutofillServerCommunication');
 app.commandLine.appendSwitch('disable-background-networking');
 app.commandLine.appendSwitch('disable-component-update');
@@ -36,6 +37,15 @@ if (!app.requestSingleInstanceLock()) {
 } else {
   let mainWindow: BrowserWindow | null = null;
   const mgr = new DbManager(userData);
+  const updater = new Updater({
+    current: app.getVersion(),
+    arch: process.arch === 'arm64' ? 'arm64' : 'x64',
+    downloadDir: path.join(app.getPath('temp'), 'Notenblatt-Update'),
+    testUrl: devEnv('NOTENBLATT_UPDATE_URL'),
+    dryRun: !!devEnv('NOTENBLATT_UPDATE_DRY_RUN'),
+  });
+  /** Verified update installer to run once the app has quit. */
+  let installer: string | null = null;
 
   const isLocal = (url: string): boolean => {
     if (/^(file|devtools|data|blob|chrome-extension):/i.test(url)) return true;
@@ -181,7 +191,14 @@ if (!app.requestSingleInstanceLock()) {
       mainWindow: () => mainWindow,
       print: { createWindow: (hash, show) => createWindow(hash, show, { width: 1123, height: 794 }) },
       partition: PARTITION,
+      userData,
+      updater,
+      quitForUpdate: (file) => {
+        installer = file;
+        app.quit();
+      },
     });
+    updater.cleanup();
     openMain();
   });
 
@@ -193,5 +210,10 @@ if (!app.requestSingleInstanceLock()) {
   // app.quit() (e.g. Windows logoff) skips "window-all-closed": still save and release the lock.
   app.on('will-quit', () => {
     mgr.shutdown(true);
+  });
+
+  // Last event before exit: the database is saved and the lock released, so the installer can replace the app.
+  app.on('quit', () => {
+    if (installer) updater.launch(installer);
   });
 }

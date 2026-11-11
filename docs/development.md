@@ -48,6 +48,8 @@ Environment variables for development and testing. They only work when the app r
 - `NOTENBLATT_USER_DATA=<dir>` – use another data directory instead of `%APPDATA%\Notenblatt` (all tests use temp dirs).
 - `NOTENBLATT_E2E=1` – enables DevTools in production bundles (used by Playwright).
 - `NOTENBLATT_E2E_HIDDEN=1` – keeps the window hidden.
+- `NOTENBLATT_UPDATE_URL=<url>` – check this URL (localhost) instead of the GitHub API; also enables the update check in a 0.0.0 build. Used by `update.spec.ts`.
+- `NOTENBLATT_UPDATE_DRY_RUN=1` – download and verify an update but do not start the installer.
 
 Generated folders (`out/`, `dist/`, `coverage/`, `test-results/`, `playwright-report/`, `.e2e-data/`) are gitignored; never commit them.
 
@@ -102,3 +104,5 @@ Before publishing a release, go through the manual checks in [testing.md](testin
 **Electron fuses** (`build.electronFuses`) are set when packaging: `runAsNode`, `NODE_OPTIONS` and `--inspect` are disabled, the app loads only from `app.asar`, and the asar's integrity is validated. `grantFileProtocolExtraPrivileges` stays enabled because the UI is loaded as ES modules from `file://`. To inspect a build: `npx @electron/fuses read --app dist/win-unpacked/Notenblatt.exe`. Because the inspector is disabled, Playwright cannot drive a packaged build; E2E tests run against the unpackaged bundles.
 
 The installers are not code-signed; the README explains the SmartScreen prompt.
+
+**Releases and in-app updates.** The app offers the latest non-pre-release GitHub release whose tag (`vX.Y.Z`) is newer than its own version, once the release workflow has uploaded `Notenblatt-Setup-<version>-<arch>.exe`. Keep the asset names (`build.win.artifactName`) and the tag format unchanged, or installed copies stop finding updates. The release notes (release body, Markdown) are shown in the app before installing, so write them for teachers, in German. Mark test builds as **pre-release**: they are never offered.

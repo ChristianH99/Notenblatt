@@ -18,6 +18,7 @@ const entryMode = z.enum(['points', 'grade']);
 const weightC = z.number().int().min(1).max(10000);
 const rounding = z.enum(['half_up', 'half_favor', 'truncate']);
 const dir = z.string().min(1).max(1000);
+const version = z.string().regex(/^\d{1,6}\.\d{1,6}\.\d{1,6}$/);
 
 /** Settings value for 'categoryTemplate' (JSON string). */
 export const CATEGORY_TEMPLATE = z
@@ -29,6 +30,13 @@ export const SCHEMAS: Record<ApiMethod, z.ZodType> = {
   'app.startupInfo': none,
   'app.openDataFolder': none,
   'app.wipeAll': none,
+  'onboarding.finish': z.object({ done: z.boolean() }).strict(),
+  'update.prefs': none,
+  'update.setAutoCheck': z.object({ on: z.boolean() }).strict(),
+  'update.check': z.object({ auto: z.boolean() }).strict(),
+  'update.skip': z.object({ version }).strict(),
+  'update.install': z.object({ version }).strict(),
+  'update.cancel': none,
   'settings.get': none,
   'settings.set': z
     .object({

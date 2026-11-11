@@ -1,5 +1,6 @@
 /** Typed IPC contract between renderer (via preload) and main. */
 import type { StepQp } from './grading/units';
+import type { UpdateOffer } from './update';
 import type {
   EntryMode,
   RoundingDigits,
@@ -62,10 +63,28 @@ export interface ExamPick {
   taskCount: number;
 }
 
+export type UpdateCheck = { status: 'available'; offer: UpdateOffer } | { status: 'current' } | { status: 'off' };
+
+export interface UpdatePrefs {
+  /** False for a development build: no update check at all. */
+  enabled: boolean;
+  version: string;
+  autoCheck: boolean;
+}
+
 export interface ApiMethods {
   'app.startupInfo': (a: void) => StartupInfo;
   'app.openDataFolder': (a: void) => void;
   'app.wipeAll': (a: void) => void;
+  'onboarding.finish': (a: { done: boolean }) => void;
+  'update.prefs': (a: void) => UpdatePrefs;
+  'update.setAutoCheck': (a: { on: boolean }) => void;
+  /** auto: the check on start (respects the switch and a skipped version). */
+  'update.check': (a: { auto: boolean }) => UpdateCheck;
+  'update.skip': (a: { version: string }) => void;
+  /** Downloads, verifies and starts the installer of the checked version; the app then quits. */
+  'update.install': (a: { version: string }) => void;
+  'update.cancel': (a: void) => void;
   'settings.get': (a: void) => Settings;
   'settings.set': (a: { key: SettingKey; value: string | null }) => Settings;
   'classes.tree': (a: void) => ClassTreeItem[];
@@ -148,8 +167,15 @@ export type ApiResult<K extends ApiMethod> = ReturnType<ApiMethods[K]>;
 
 export type ApiResponse<T> = { ok: true; value: T } | { ok: false; error: string; user: boolean };
 
+/** Main → renderer events and their payloads. */
+export interface BridgeEvents {
+  'update-progress': { received: number; total: number };
+}
+
+export const BRIDGE_EVENTS: readonly (keyof BridgeEvents)[] = ['update-progress'];
+
 export interface Bridge {
   invoke<K extends ApiMethod>(method: K, arg: ApiArg<K>): Promise<ApiResponse<ApiResult<K>>>;
-  /** Subscribes to main → renderer events ("data-reset"). Returns an unsubscribe function. */
-  on(event: 'data-reset', fn: () => void): () => void;
+  /** Subscribes to a main → renderer event. Returns an unsubscribe function. */
+  on<E extends keyof BridgeEvents>(event: E, fn: (payload: BridgeEvents[E]) => void): () => void;
 }

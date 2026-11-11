@@ -24,7 +24,7 @@ export interface GradingRules {
   errorsWeightC: number;
 }
 
-function WeightInput({ id, label, value, onCommit }: { id: string; label: string; value: number; onCommit: (weightC: number) => void }): React.JSX.Element {
+export function WeightInput({ id, label, value, onCommit }: { id: string; label: string; value: number; onCommit: (weightC: number) => void }): React.JSX.Element {
   const field = useEditField(formatWeight(value), (raw) => {
     const w = parseWeight(raw);
     if (w === null) {
@@ -40,17 +40,20 @@ function WeightInput({ id, label, value, onCommit }: { id: string; label: string
 /**
  * Form rows (for a formGrid) for grading system, rounding, final mark and the error weights.
  * Ids are `${idPrefix}-system`, `-rounding`, `-final`, `-wpoints`, `-werrors`.
+ * `beforeErrorWeights`: extra rows between the final mark and the error weights.
  */
 export function GradingRuleFields({
   idPrefix,
   value,
   onChange,
   showErrorWeights,
+  beforeErrorWeights,
 }: {
   idPrefix: string;
   value: GradingRules;
   onChange: (patch: Partial<GradingRules>) => void;
   showErrorWeights: boolean;
+  beforeErrorWeights?: React.ReactNode;
 }): React.JSX.Element {
   const np = value.gradingSystem === 'NP15';
   return (
@@ -87,14 +90,19 @@ export function GradingRuleFields({
         )}
         <option value="none">Keine Endnote (nur Durchschnitt anzeigen)</option>
       </Select>
+      {beforeErrorWeights}
       {showErrorWeights && (
         <>
           <label htmlFor={`${idPrefix}-wpoints`}>Fehlerbewertung</label>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            Punkte ×
-            <WeightInput id={`${idPrefix}-wpoints`} label="Gewicht der Note aus den Punkten" value={value.pointsWeightC} onCommit={(w) => onChange({ pointsWeightC: w })} />
-            : Fehler ×
-            <WeightInput id={`${idPrefix}-werrors`} label="Gewicht der Note aus den Fehlern" value={value.errorsWeightC} onCommit={(w) => onChange({ errorsWeightC: w })} />
+          <span style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              Punkte ×
+              <WeightInput id={`${idPrefix}-wpoints`} label="Gewicht der Note aus den Punkten" value={value.pointsWeightC} onCommit={(w) => onChange({ pointsWeightC: w })} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              Fehler ×
+              <WeightInput id={`${idPrefix}-werrors`} label="Gewicht der Note aus den Fehlern" value={value.errorsWeightC} onCommit={(w) => onChange({ errorsWeightC: w })} />
+            </span>
           </span>
         </>
       )}

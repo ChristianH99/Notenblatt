@@ -1,16 +1,84 @@
+import { useEffect, useState } from 'react';
+import type { UpdatePrefs } from '@shared/api';
 import { useEditField } from '../hooks';
 import type { CategoryTemplate } from '@shared/types';
 import { CategoryEditor } from '../components/CategoryEditor';
 import { GradingRuleFields } from './CourseGrading';
-import { Button, Select, TextInput } from '../components/ui';
+import { Button, Checkbox, Select, TextInput } from '../components/ui';
 import { call } from '../api';
-import { setSetting, useStore } from '../store';
+import { errorText, setSetting, setTemplateRules, templateRules, useStore } from '../store';
 import * as about from 'virtual:about';
 import s from './shell.module.css';
 
 function SettingText({ id, value, onCommit, placeholder }: { id: string; value: string; onCommit: (v: string) => void; placeholder?: string }): React.JSX.Element {
   const field = useEditField(value, (v) => onCommit(v.trim()));
   return <TextInput id={id} placeholder={placeholder} {...field} />;
+}
+
+/** Automatic check on start, manual check. Updates come from the GitHub releases. */
+function UpdateSection(): React.JSX.Element {
+  const [prefs, setPrefs] = useState<UpdatePrefs | null>(null);
+  const [status, setStatus] = useState('');
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    void call('update.prefs').then(setPrefs);
+  }, []);
+
+  const check = async (): Promise<void> => {
+    setBusy(true);
+    setStatus('Suche nach Updates …');
+    try {
+      const r = await call('update.check', { auto: false });
+      if (r.status === 'available') {
+        setStatus('');
+        useStore.setState({ dialog: { kind: 'update', offer: r.offer } });
+      } else {
+        setStatus('Notenblatt ist auf dem neuesten Stand.');
+      }
+    } catch (e) {
+      setStatus(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className={s.section}>
+      <div className={s.sectionHead}>
+        <h2 className={s.sectionTitle}>Updates</h2>
+      </div>
+      <div className={`${s.sectionBody} ${s.formGrid}`}>
+        {prefs && !prefs.enabled ? (
+          <>
+            <span>Updates</span>
+            <span className={s.muted}>In der Entwicklungsversion nicht verfügbar.</span>
+          </>
+        ) : (
+          <>
+            <span>Beim Start</span>
+            <Checkbox
+              id="set-autoupdate"
+              label="Nach Updates suchen"
+              checked={prefs?.autoCheck ?? true}
+              onChange={(on) => {
+                if (prefs) setPrefs({ ...prefs, autoCheck: on });
+                void call('update.setAutoCheck', { on });
+              }}
+            />
+            <span>Jetzt</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <Button onClick={() => void check()} disabled={busy}>
+                Nach Updates suchen
+              </Button>
+              <span className={s.muted} role="status" data-testid="update-status">
+                {status}
+              </span>
+            </div>
+          </>
+        )}
+      </div>
+    </section>
+  );
 }
 
 /** Version, copyright and all licenses (own and third-party), as required by the MIT and other licenses. */
@@ -94,6 +162,10 @@ export function SettingsView(): React.JSX.Element {
               <option value="on">An</option>
               <option value="off">Aus</option>
             </Select>
+            <span>Einführung</span>
+            <div>
+              <Button onClick={() => useStore.setState({ dialog: { kind: 'onboarding' } })}>Einführung anzeigen</Button>
+            </div>
           </div>
         </section>
 
@@ -146,28 +218,7 @@ export function SettingsView(): React.JSX.Element {
               „Gewichtung“.
             </p>
             <div className={s.formGrid}>
-              <GradingRuleFields
-                idPrefix="set"
-                showErrorWeights
-                value={{
-                  gradingSystem: st.defaultGradingSystem,
-                  rounding: st.defaultRounding,
-                  showFinal: st.defaultShowFinal,
-                  finalDigits: st.defaultRoundingDigits,
-                  pointsWeightC: st.defaultPointsWeightC,
-                  errorsWeightC: st.defaultErrorsWeightC,
-                }}
-                onChange={(p) =>
-                  void (async () => {
-                    if (p.gradingSystem !== undefined) await setSetting('defaultGradingSystem', p.gradingSystem);
-                    if (p.rounding !== undefined) await setSetting('defaultRounding', p.rounding);
-                    if (p.showFinal !== undefined) await setSetting('defaultShowFinal', p.showFinal ? '1' : '0');
-                    if (p.finalDigits !== undefined) await setSetting('defaultRoundingDigits', String(p.finalDigits));
-                    if (p.pointsWeightC !== undefined) await setSetting('defaultPointsWeightC', String(p.pointsWeightC));
-                    if (p.errorsWeightC !== undefined) await setSetting('defaultErrorsWeightC', String(p.errorsWeightC));
-                  })()
-                }
-              />
+              <GradingRuleFields idPrefix="set" showErrorWeights value={templateRules(st)} onChange={(p) => void setTemplateRules(p)} />
             </div>
             <CategoryEditor
               label="Kategorien der Vorlage"
@@ -214,6 +265,7 @@ export function SettingsView(): React.JSX.Element {
           </div>
         </section>
 
+        <UpdateSection />
         <AboutSection />
       </div>
     </div>

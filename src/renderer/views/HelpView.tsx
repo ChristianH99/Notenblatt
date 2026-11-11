@@ -150,8 +150,10 @@ export function HelpView(): React.JSX.Element {
 
         <h2>Datenschutz</h2>
         <p>
-          Notenblatt arbeitet vollständig offline. Das Programm baut keine Netzwerkverbindungen auf; es gibt keine Updates, keine Telemetrie und keine Fehlerberichte.
-          Daten verlassen das Gerät nur, wenn Sie selbst exportieren (PDF, CSV oder Datensicherung).
+          Notenblatt arbeitet offline. Die einzige Netzwerkverbindung ist die Suche nach Updates: Dabei fragt Notenblatt bei GitHub die neueste Version ab und lädt
+          sie auf Ihren Wunsch herunter. Es werden keine Daten aus Notenblatt übertragen; GitHub sieht nur Ihre IP-Adresse. Die Suche beim Start lässt sich unter
+          Einstellungen → Updates abschalten. Es gibt keine Telemetrie und keine Fehlerberichte. Daten verlassen das Gerät nur, wenn Sie selbst exportieren (PDF,
+          CSV oder Datensicherung).
         </p>
         <p>
           Die Daten liegen in einer Datei im Benutzerprofil (Einstellungen → Speicherort). Gelöschte Schüler/innen, Klassen, Fächer und Prüfungen werden auch physisch aus der

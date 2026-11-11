@@ -6,6 +6,8 @@ For installation see the [README](../README.md#installation).
 
 ## First steps (about 2 minutes)
 
+On the first start a short tour (five steps, about a minute) asks for your name and school and the grading defaults for new subjects (including the weighting of written and oral marks and of errors), lets you choose where the database is stored and asks for a password to encrypt it (recommended; "Unverschlüsselt speichern" skips this), and explains classes, subjects and the kinds of exams. "Überspringen" shows it again on the next start; tick "Nicht mehr anzeigen" to skip it for good. Settings → "Einführung anzeigen" opens it again.
+
 1. **Create a class** – enter a name (e.g. `F-A11a`) and the school year.
 2. **Paste names** – in the class, click "Namen einfügen…" and paste the name list, e.g. copied from Excel or ASV. One line per student:
    - `Müller, Anna`
@@ -60,13 +62,23 @@ The in-app **"Hilfe"** page explains both grading formulas with examples and lis
 
 ## Privacy
 
-- Notenblatt makes **no network connections**: no updates, no telemetry, no error reports. The app blocks all network access internally.
+- Notenblatt's **only network connection is the update check** (see below). There is no telemetry and there are no error reports; everything else is blocked inside the app.
 - By default the data lives in your user profile (`%APPDATA%\Notenblatt`), or in a folder of your choice (settings → "Ordner öffnen").
 - **Deleting is final:** when you delete a student, a class, a subject or an exam, the data is also physically removed from the file.
 - **"Alle Daten löschen…"** (settings) removes all classes, grades and settings from this device.
 - **Retention period:** Notenblatt points out classes from school years that ended more than 12 months ago (configurable: 6/12/24 months or off).
 - **Backup** (settings → "Datensicherung…") creates a `.notenblatt` file that is **always encrypted with your password** (AES-256). It cannot be restored without the password. Keep the file safe – it contains personal data.
 - Data only leaves your device when you export something yourself (PDF, CSV, backup).
+
+## Updates
+
+On every start Notenblatt asks GitHub whether a new version is available (settings → "Updates" to turn this off, or to check by hand). No data from Notenblatt is sent; GitHub sees your IP address. If there is a new version, Notenblatt shows what is new and offers:
+
+- **Jetzt installieren** – downloads the installer, checks that it is unchanged, closes Notenblatt, installs the update and starts Notenblatt again. Your data is kept.
+- **Später** – asks again on the next start.
+- **Diese Version überspringen** – does not ask again for this version, only when a newer one is released.
+
+Test versions (pre-releases) are never offered.
 
 ## Backup and moving to another device
 
