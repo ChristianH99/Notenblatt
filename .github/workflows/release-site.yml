@@ -1,0 +1,47 @@
+name: Release changed
+
+# Redeploys the website when an existing release changes in a way that matters to it:
+# - a pre-release is promoted to a release ("released"/"edited"),
+# - the notes or title of a release are edited ("edited"),
+# - a release is unpublished or deleted (the site must stop linking to it).
+# A newly published release is handled by release.yml, which deploys only after the installers
+# are attached. That is why releases without an installer yet are skipped here (on a fresh
+# publish GitHub also sends "released", before the installers exist).
+# The deploy is started on main: this run's ref is the release tag, and the github-pages
+# environment only accepts deployments from main.
+
+on:
+  release:
+    types: [released, edited, unpublished, deleted]
+
+permissions:
+  actions: write
+
+concurrency:
+  group: release-site
+  cancel-in-progress: false
+
+jobs:
+  website:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Decided from the event payload (node is preinstalled on the runner); the same command
+      # can be run locally with GITHUB_EVENT_PATH pointing to a sample payload.
+      - name: Decide whether the site needs a deploy
+        id: check
+        run: |
+          node -e '
+            const e = JSON.parse(require("fs").readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"));
+            const r = e.release ?? {};
+            const hasInstaller = (r.assets ?? []).some((a) => /^Notenblatt-Setup-.+\.exe$/.test(a.name));
+            const deploy = ["unpublished", "deleted"].includes(e.action) || (!r.draft && hasInstaller);
+            console.log(`${e.action} ${r.tag_name}: ${deploy ? "deploy" : "skip (draft or no installer yet)"}`);
+            require("fs").appendFileSync(process.env.GITHUB_OUTPUT, `deploy=${deploy}\n`);
+          '
+
+      - name: Start the website deploy
+        if: steps.check.outputs.deploy == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" --ref main

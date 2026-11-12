@@ -40,8 +40,12 @@ $env:NOTENBLATT_USER_DATA = "$PWD\.dev-data"; npm run dev        # PowerShell
 | `npm run licenses` | Regenerates `THIRD_PARTY_NOTICES.md` from the shipped dependencies (see [Licenses](#licenses-and-third-party-notices)) |
 | `npm run licenses:check` | Fails if `THIRD_PARTY_NOTICES.md` is out of date (run in CI) |
 | `npm run dist` | Windows installers in `dist/`; normally run only by the release workflow |
+| `npm run site:build` | Builds the website into `_site/` for a local look (allows imprint placeholders; see [Website](#website)) |
+| `npm run site:screenshots` | Production bundles, then retakes the website screenshots in `site/assets/screens/` from invented demo data |
 
 See [testing.md](testing.md) for what the test suites cover.
+
+If every Vitest suite fails with `TypeError: Cannot read properties of undefined (reading 'config')` and "no tests", the shell's working directory has a lowercase drive letter (`c:\…`, as VS Code sometimes starts terminals). Vite then loads Vitest twice. Run the tests from `C:\…` (e.g. `cd C:\Users\…\Notenblatt` first).
 
 Environment variables for development and testing. They only work when the app runs from source (`npm run dev`, `npm run e2e`); the installed app ignores them:
 
@@ -51,7 +55,7 @@ Environment variables for development and testing. They only work when the app r
 - `NOTENBLATT_UPDATE_URL=<url>` – check this URL (localhost) instead of the GitHub API; also enables the update check in a 0.0.0 build. Used by `update.spec.ts`.
 - `NOTENBLATT_UPDATE_DRY_RUN=1` – download and verify an update but do not start the installer.
 
-Generated folders (`out/`, `dist/`, `coverage/`, `test-results/`, `playwright-report/`, `.e2e-data/`) are gitignored; never commit them.
+Generated folders (`out/`, `dist/`, `coverage/`, `test-results/`, `playwright-report/`, `.e2e-data/`, `_site/`) are gitignored; never commit them.
 
 ## Conventions
 
@@ -90,12 +94,26 @@ Installers are built only by `.github/workflows/release.yml`, which runs when a 
 2. The workflow sets the app version from the tag (`npm version`, not committed), runs the unit and integration tests, builds both installers with `npm run dist` and attaches them to the release:
    - `Notenblatt-Setup-<version>-x64.exe`
    - `Notenblatt-Setup-<version>-arm64.exe`
+3. For a release that is not a pre-release, it then starts the website deploy (`pages.yml`) on `main`, so the download buttons point to the new installers and the new release notes appear on the site.
+
+**Release notes in two languages:** write the German notes first; optionally add a line `<!-- en -->` followed by the English notes. The app's update dialog shows only the German part (the English one only if there is no German part), the website shows the part of its language (or the German part, marked as such, if there is no English one). A marker inside a fenced code block does not count. Both use `splitReleaseNotes` in `src/shared/markdown.ts`. The website takes the release with the **highest** version as the latest (as the app's update check does), not the most recently published one.
 
 **Versioning:** Notenblatt has not been released yet; the first release will be `v0.1.0`. The version in `package.json` is the placeholder `0.0.0` and is never bumped by hand: the release tag is the only source of a version number. Builds from source therefore report `0.0.0`.
 
 Re-running the workflow replaces the attached installers (`--clobber`). A tag that is not a semantic version fails the workflow before anything is built.
 
 Before publishing a release, go through the manual checks in [testing.md](testing.md#manual-release-checks).
+
+## Website
+
+The product website (German at `/`, English at `/en/`) is published with GitHub Pages at `https://christianh99.github.io/Notenblatt/`. It is plain HTML and CSS with no JavaScript and nothing loaded from other hosts (fonts and icons are self-hosted, see the licence files in `site/assets/`).
+
+- **Sources** (`site/`): `layout.html` (header, footer), `pages/de/*.html` and `pages/en/*.html` (content, with a JSON front-matter comment for title and description), `assets/` (CSS, fonts, icons, screenshots). The legal pages are `pages/de/impressum/index.html` and `pages/de/datenschutz/index.html` (served as `/impressum/` and `/datenschutz/`, German only, linked from every footer).
+- **Build** (`scripts/build-site.mjs`, no dependencies): fills in the latest published release (version, date, direct installer links and sizes; drafts and pre-releases are ignored), renders every release's notes per language as `versionen.html` / `en/releases.html`, expands `<img data-screen="…">` into responsive WebP images and fails on a missing alt text, an unknown placeholder or a broken local link. Without any release, the download buttons link to the GitHub releases page.
+- **Legal pages:** their wording is final legal text; change it only on purpose and never reword it. The build fails while either page still contains a placeholder in square brackets (e.g. `[Telefonnummer]`); `npm run site:build` passes `--allow-placeholders` for local previews only. The contact email is written as HTML numeric entities (no `mailto:`) and the build fails if the plain address or a `mailto:` link ends up in any page.
+- **Privacy:** the site makes no requests to other hosts (fonts, icons and CSS are self-hosted; no JavaScript, cookies or analytics). The Datenschutzerklärung relies on that: adding any third-party service means updating it first. External links get `rel="noopener noreferrer"` automatically.
+- **Deploy** (`.github/workflows/pages.yml`): on pushes to `main` that change the site, by hand (Actions → Website → Run workflow), after each release (started by `release.yml` once the installers are attached), and when a release is promoted from pre-release, edited, unpublished or deleted (started by `release-site.yml`). One-time setup: Settings → Pages → Source: **GitHub Actions**.
+- **Screenshots** (`npm run site:screenshots`, `tests/site/`): seeds three school years of invented data through the app's IPC bridge, opens the real app at device scale factor 2 and saves 1x and 2x WebP crops plus `screens.json` (sizes). Retake them after visible UI changes and commit the results. The storage path in the settings screenshot is replaced by `H:\Notenblatt` so no local user name ends up on the site.
 
 ### Packaging details
 
@@ -105,4 +123,4 @@ Before publishing a release, go through the manual checks in [testing.md](testin
 
 The installers are not code-signed; the README explains the SmartScreen prompt.
 
-**Releases and in-app updates.** The app offers the latest non-pre-release GitHub release whose tag (`vX.Y.Z`) is newer than its own version, once the release workflow has uploaded `Notenblatt-Setup-<version>-<arch>.exe`. Keep the asset names (`build.win.artifactName`) and the tag format unchanged, or installed copies stop finding updates. The release notes (release body, Markdown) are shown in the app before installing, so write them for teachers, in German. Mark test builds as **pre-release**: they are never offered.
+**Releases and in-app updates.** The app offers the latest non-pre-release GitHub release whose tag (`vX.Y.Z`) is newer than its own version, once the release workflow has uploaded `Notenblatt-Setup-<version>-<arch>.exe`. Keep the asset names (`build.win.artifactName`) and the tag format unchanged, or installed copies stop finding updates. The release notes (release body, Markdown) are shown in the app before installing, so write them for teachers, in German (an English part after `<!-- en -->` is for the website only, see above). Mark test builds as **pre-release**: they are never offered.

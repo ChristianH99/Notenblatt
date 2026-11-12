@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { parseMarkdown, type Inline } from '@shared/markdown';
+import { parseMarkdown, splitReleaseNotes, type Inline } from '@shared/markdown';
 import type { UpdateOffer } from '@shared/update';
 import { formatDateDe } from '@shared/parse/number';
 import { call } from '../api';
@@ -17,9 +17,14 @@ function Spans({ content }: { content: Inline[] }): React.JSX.Element {
   );
 }
 
-/** Release notes from GitHub, shown as text (headings, lists, emphasis); links are not followed. */
+/**
+ * Release notes from GitHub, shown as text (headings, lists, emphasis); links are not followed.
+ * Only the German part: an English part after `<!-- en -->` is for the website (shown here
+ * only when there is no German part, rather than claiming there are no notes).
+ */
 export function ReleaseNotes({ markdown }: { markdown: string }): React.JSX.Element {
-  const blocks = parseMarkdown(markdown);
+  const parts = splitReleaseNotes(markdown);
+  const blocks = parseMarkdown(parts.de || (parts.en ?? ''));
   return (
     <div className={g.notes} data-testid="release-notes" tabIndex={0} aria-label="Neuerungen">
       {blocks.length === 0 && <p>Für diese Version gibt es keine Beschreibung.</p>}

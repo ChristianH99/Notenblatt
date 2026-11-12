@@ -39,6 +39,31 @@ export function parseInline(src: string): Inline[] {
   return out;
 }
 
+/** A line `<!-- en -->` in the release text: German above it, English below (optional). */
+const EN_MARKER = /^[ \t]*<!--[ \t]*en[ \t]*-->[ \t]*$/i;
+const FENCE = /^\s*```/;
+
+/**
+ * Splits bilingual release notes at the first `<!-- en -->` line outside a fenced code block.
+ * Without the marker the whole text is German and `en` is null. The app shows `de` (or `en`
+ * if there is no German part); the website shows the part of its language.
+ */
+export function splitReleaseNotes(md: string): { de: string; en: string | null } {
+  let inFence = false;
+  let at = 0;
+  for (const line of md.split('\n')) {
+    const end = at + line.length;
+    const text = line.replace(/\r$/, '');
+    if (FENCE.test(text)) inFence = !inFence;
+    else if (!inFence && EN_MARKER.test(text)) {
+      const en = md.slice(end + 1).trim();
+      return { de: md.slice(0, at).trim(), en: en || null };
+    }
+    at = end + 1;
+  }
+  return { de: md.trim(), en: null };
+}
+
 const BULLET = /^\s{0,3}[-*+]\s+(.*)$/;
 const NUMBERED = /^\s{0,3}\d{1,9}[.)]\s+(.*)$/;
 

@@ -1,7 +1,8 @@
 name: Release
 
 # Builds the Windows installers whenever a GitHub release is published
-# (directly or from a draft) and attaches them to that release.
+# (directly or from a draft) and attaches them to that release, then starts the
+# website deploy (pages.yml) so its download links point to the new version.
 # The release tag sets the app version: tag "v0.1.0" builds Notenblatt 0.1.0.
 
 on:
@@ -58,3 +59,21 @@ jobs:
 
       - name: Attach installers to the release
         run: gh release upload "$TAG" dist/Notenblatt-Setup-*-x64.exe dist/Notenblatt-Setup-*-arm64.exe --clobber
+
+  # Updates the website's download links and release notes. Runs only after the installers
+  # are attached, so the site never links to a file that does not exist yet. Pre-releases
+  # leave the site alone (the build ignores them anyway).
+  # The deploy is started on main rather than called from here: this run's ref is the release
+  # tag, and the github-pages environment only accepts deployments from main.
+  website:
+    needs: build
+    if: ${{ !github.event.release.prerelease }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Start the website deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" --ref main

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="{{LANG}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<meta name="description" content="{{DESCRIPTION}}">
+<link rel="canonical" href="{{CANONICAL}}">
+{{ALT_LINK}}
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f7f5f0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15181b" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="{{TITLE}}">
+<meta property="og:description" content="{{DESCRIPTION}}">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://christianh99.github.io/Notenblatt/assets/screens/exam-grid-1x.webp">
+<link rel="icon" href="{{ROOT}}assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="{{ROOT}}assets/icon.png" type="image/png">
+<link rel="preload" href="{{ROOT}}assets/fonts/source-sans-3-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{{ROOT}}assets/fonts/literata-latin-opsz.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{{ROOT}}assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">{{SKIP}}</a>
+<header class="site-header">
+  <div class="container header-row">
+    <a class="brand" href="{{HOME}}">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="1" width="22" height="22" rx="4" fill="var(--accent)"/><rect x="4.5" y="4.5" width="15" height="15" fill="var(--paper)"/><g fill="var(--accent)"><rect x="6" y="10.5" width="3.4" height="3.4"/><rect x="10.3" y="10.5" width="3.4" height="3.4"/><rect x="14.6" y="10.5" width="3.4" height="3.4"/><rect x="6" y="14.8" width="3.4" height="3.4"/><rect x="10.3" y="14.8" width="3.4" height="3.4"/><rect x="14.6" y="14.8" width="3.4" height="3.4"/></g></svg>
+      Notenblatt
+    </a>
+    <nav class="site-nav" aria-label="{{NAV_LABEL}}">
+      <ul>{{NAV}}</ul>
+    </nav>
+    <a class="lang" href="{{ALT_HREF}}" hreflang="{{ALT_LANG}}" lang="{{ALT_LANG}}"><span aria-hidden="true">{{ALT_SHORT}}</span><span class="sr-only">{{ALT_LABEL}}</span></a>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+{{CONTENT}}
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <p class="footer-name">Notenblatt</p>
+      <p class="muted">{{FOOTER_TAGLINE}}</p>
+    </div>
+    <div>
+      <h2 class="footer-h">{{FOOTER_CONTACT}}</h2>
+      <ul>
+        <li>{{EMAIL}}</li>
+        <li><a href="{{REPO}}/issues">{{FOOTER_ISSUES}}</a></li>
+      </ul>
+    </div>
+    <div>
+      <h2 class="footer-h">{{FOOTER_LEGAL}}</h2>
+      <ul>
+        <li><a href="{{IMPRINT_HREF}}" hreflang="de" lang="de"{{IMPRINT_CURRENT}}>{{IMPRINT}}</a></li>
+        <li><a href="{{PRIVACY_HREF}}" hreflang="de" lang="de"{{PRIVACY_CURRENT}}>{{PRIVACY}}</a></li>
+        <li><a href="{{REPO}}/blob/main/THIRD_PARTY_NOTICES.md">{{LICENSES}}</a></li>
+      </ul>
+    </div>
+    <div>
+      <h2 class="footer-h">{{FOOTER_DOCS}}</h2>
+      <ul>
+        <li><a href="{{REPO}}/blob/main/docs/user-guide.md">{{GUIDE}}</a></li>
+        <li><a href="{{REPO}}">{{SOURCE}}</a></li>
+      </ul>
+    </div>
+    <p class="footer-fine muted">{{COPYRIGHT}}<br>{{CREDITS}} <a href="{{ROOT}}assets/fonts/Literata-OFL.txt">Literata OFL</a> · <a href="{{ROOT}}assets/fonts/SourceSans3-OFL.txt">Source Sans 3 OFL</a> · <a href="{{ROOT}}assets/Lucide-LICENSE.txt">Lucide ISC</a></p>
+  </div>
+</footer>
+</body>
+</html>

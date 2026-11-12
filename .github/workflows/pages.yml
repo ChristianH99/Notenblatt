@@ -1,0 +1,64 @@
+name: Website
+
+# Builds the website (site/) and deploys it to GitHub Pages.
+# - Started by release.yml (on main) after the installers are attached to a new release, and by
+#   release-site.yml when a release is promoted, edited, unpublished or deleted.
+# - Runs on pushes to main that change the site, and by hand (Actions → Website → Run).
+# The download links and release notes always come from the latest published release
+# (drafts and pre-releases are ignored), whichever way the run was started.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'scripts/build-site.mjs'
+      - 'src/shared/markdown.ts'
+      - 'src/shared/update.ts'
+      - '.github/workflows/pages.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a newer run waits instead of cancelling one that is deploying.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+
+      - name: Fetch published releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api "repos/${{ github.repository }}/releases?per_page=100" > releases.json
+
+      # Fails while the Impressum or Datenschutzerklärung still has a [placeholder]: no deploy of unfinished legal pages.
+      - name: Build site
+        run: node scripts/build-site.mjs --releases releases.json --out _site
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
