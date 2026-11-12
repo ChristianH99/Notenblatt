@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseInline, parseMarkdown } from '@shared/markdown';
+import { parseInline, parseMarkdown, splitReleaseNotes } from '@shared/markdown';
 import { compareVersions, isUpdateUrl, parseVersion, pickUpdate } from '@shared/update';
 
 const SHA = 'a'.repeat(64);
@@ -160,6 +160,21 @@ describe('release notes markdown', () => {
       { kind: 'code', text: '<script>x</script>' },
       { kind: 'heading', level: 3, content: [{ kind: 'text', text: 'Klein' }] },
     ]);
+  });
+
+  it('splits bilingual notes at the <!-- en --> line', () => {
+    expect(splitReleaseNotes('## Neu\r\n- Hilfe\r\n\r\n<!-- en -->\r\n## New\r\n- Help\r\n')).toEqual({ de: '## Neu\r\n- Hilfe', en: '## New\r\n- Help' });
+    expect(splitReleaseNotes('  <!--EN-->  \nOnly English')).toEqual({ de: '', en: 'Only English' });
+    expect(splitReleaseNotes('Nur Deutsch\n')).toEqual({ de: 'Nur Deutsch', en: null });
+    expect(splitReleaseNotes('Deutsch\n<!-- en -->\n  ')).toEqual({ de: 'Deutsch', en: null });
+    // Only a line of its own counts; the marker inside text does not split.
+    expect(splitReleaseNotes('Text <!-- en --> mehr').en).toBeNull();
+  });
+
+  it('ignores the <!-- en --> line inside a fenced code block', () => {
+    const md = ['Schreibweise:', '```', 'Deutsch', '<!-- en -->', 'English', '```', 'Ende', '<!-- en -->', 'End'].join('\r\n');
+    expect(splitReleaseNotes(md)).toEqual({ de: 'Schreibweise:\r\n```\r\nDeutsch\r\n<!-- en -->\r\nEnglish\r\n```\r\nEnde', en: 'End' });
+    expect(splitReleaseNotes('```\n<!-- en -->\n```').en).toBeNull();
   });
 
   it('starts a list right after a paragraph and handles empty notes', () => {

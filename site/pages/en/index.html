@@ -1,0 +1,446 @@
+<!-- {
+  "title": "Notenblatt – grade exams offline",
+  "description": "Notenblatt replaces the Excel grading sheet for German teachers: enter points per task and the grade, grade key, distribution and weighted final mark appear at once. Offline, for Windows, free."
+} -->
+<section class="hero" aria-labelledby="hero-title">
+  <div class="container grid">
+    <div class="hero-title">
+      <p class="label">Notenblatt for Windows</p>
+      <h1 id="hero-title">Enter the points, and the grade is already there.</h1>
+    </div>
+    <div class="hero-side">
+      <p>Notenblatt replaces the Excel grading sheet for teachers who mark their own exams: points per task, grade key, grade distribution and a weighted final mark, without writing a single formula.</p>
+      <a class="btn" href="{{X64}}">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>
+        Download now
+      </a>
+      <p class="cta-meta">
+        <span><!--if:release-->{{DOWNLOAD_META}} · Windows x64 · {{X64_SIZE}}<!--else-->{{DOWNLOAD_META}}<!--end--></span>
+        <span>For ARM devices (Surface Pro X, Surface Pro 11): <a href="{{ARM64}}">ARM64 version</a></span>
+        <span>The app itself is in German. <a href="#correct">See how it works</a></span>
+      </p>
+    </div>
+
+    <dl class="specs">
+      <div><dt>Grading</dt><dd>Notenpunkte 0–15, grades 1.0–6.0</dd></div>
+      <div><dt>Data</dt><dd>offline on your device, optional AES-256</dd></div>
+      <div><dt>Output</dt><dd>print, PDF, CSV for Excel</dd></div>
+      <div><dt>System</dt><dd>Windows 10 and 11, x64 and ARM64</dd></div>
+    </dl>
+
+    <figure class="hero-shot">
+      <div class="shot pins">
+        <img data-screen="exam-grid" data-eager sizes="(min-width: 1272px) 1208px, calc(100vw - 32px)" alt="Notenblatt showing English exam 1 of class 10b: classes by school year on the left, points per task for 27 students with total and grade in the middle, grade key and grade distribution on the right.">
+        <span class="pin" style="--x: 9%; --y: 16%" aria-hidden="true">1</span>
+        <span class="pin" style="--x: 25%; --y: 19.5%" aria-hidden="true">2</span>
+        <span class="pin" style="--x: 72%; --y: 19.5%" aria-hidden="true">3</span>
+        <span class="pin" style="--x: 92%; --y: 22.6%" aria-hidden="true">4</span>
+        <span class="pin" style="--x: 92%; --y: 55%" aria-hidden="true">5</span>
+      </div>
+    </figure>
+    <ol class="pin-legend hero-legend" aria-label="What the screenshot shows">
+      <li><b aria-hidden="true">1</b><span>Classes and subjects, sorted by school year</span></li>
+      <li><b aria-hidden="true">2</b><span>Points per task; Enter moves to the next row</span></li>
+      <li><b aria-hidden="true">3</b><span>Total and grade, calculated at once</span></li>
+      <li><b aria-hidden="true">4</b><span>Grade key with count and share</span></li>
+      <li><b aria-hidden="true">5</b><span>Average and grade distribution</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="section band" id="features" aria-labelledby="features-title">
+  <div class="container">
+    <div class="section-head">
+      <p class="label">Features</p>
+      <h2 id="features-title">Every feature, in the order you work</h2>
+      <p class="lead">From setting up a class to the report card grade. Each item links to its detailed description further down.</p>
+    </div>
+    <ol class="steps">
+      <li class="step">
+        <p class="label">Step 1</p>
+        <h3><a href="#prepare">Prepare</a></h3>
+        <ul>
+          <li>Classes per school year</li>
+          <li>Paste name lists from Excel or ASV</li>
+          <li>Subjects, categories and weights</li>
+          <li>Reuse tasks from earlier exams</li>
+        </ul>
+      </li>
+      <li class="step">
+        <p class="label">Step 2</p>
+        <h3><a href="#correct">Mark</a></h3>
+        <ul>
+          <li>Points per task or the total only</li>
+          <li>Keyboard-only entry</li>
+          <li>Paste from Excel, undo</li>
+          <li>Mark absent students</li>
+        </ul>
+      </li>
+      <li class="step">
+        <p class="label">Step 3</p>
+        <h3><a href="#evaluate">Evaluate</a></h3>
+        <ul>
+          <li>Grade key and distribution</li>
+          <li>Average, share of grades 5 and 6</li>
+          <li>Error grading for dictations</li>
+          <li>Print and PDF, CSV for Excel</li>
+        </ul>
+      </li>
+      <li class="step">
+        <p class="label">Step 4</p>
+        <h3><a href="#final-mark">Final mark</a></h3>
+        <ul>
+          <li>Grade overview per subject</li>
+          <li>Enter oral marks directly</li>
+          <li>Weighted overall average</li>
+          <li>Rounding and final mark by your rule</li>
+        </ul>
+      </li>
+      <li class="step">
+        <p class="label">Step 5</p>
+        <h3><a href="#safeguard">Safeguard</a></h3>
+        <ul>
+          <li>Password encryption</li>
+          <li>Storage on a network drive</li>
+          <li>Backup to a USB stick</li>
+          <li>Updates inside the app</li>
+        </ul>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="section f-prepare" id="prepare" aria-labelledby="prepare-title">
+  <div class="container grid">
+    <div class="feature-text">
+      <div class="feature-head">
+        <p class="label">Step 1 · Prepare</p>
+        <h2 id="prepare-title">A class is set up in two minutes</h2>
+        <p>Copy the name list from Excel or ASV and paste it. Notenblatt recognises last and first names, even in two columns. For a new exam, copy the tasks and maximum points of an earlier one, for a parallel class or a make-up exam.</p>
+      </div>
+      <ul class="facts">
+        <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></svg><span>Classes belong to a school year; for the next year, copy a class with all its students and subjects.</span></li>
+        <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg><span>Each subject has its own weighting, grading system and rounding. Defaults for new subjects are set once.</span></li>
+      </ul>
+      <details class="more">
+        <summary>Formats and exam types in detail <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+        <div class="more-body table-wrap">
+          <table>
+            <tr><th scope="row">Name lists</th><td><code>Müller, Anna</code> · <code>Müller⇥Anna</code> (two columns from Excel/ASV) · <code>Müller Anna</code>; “Spalten tauschen” if the first name comes first</td></tr>
+            <tr><th scope="row">Exam types</th><td>Klassenarbeit, Schulaufgabe, Kurzarbeit, Stegreifaufgabe, Test, Klausur or your own name</td></tr>
+            <tr><th scope="row">Point step</th><td>1, 0.5 or 0.25 points</td></tr>
+            <tr><th scope="row">Categories</th><td>Default “Schriftlich ×3” (written) and “Mündlich ×1” (oral); rename, add more (e.g. “Referat”), any weights</td></tr>
+            <tr><th scope="row">Groups</th><td>Students who don't take a subject (electives, split groups) can be removed from it</td></tr>
+          </table>
+        </div>
+      </details>
+    </div>
+    <div class="stack">
+      <figure>
+        <div class="shot"><img data-screen="paste-names" sizes="(min-width: 1272px) 440px, (min-width: 861px) 40vw, calc(100vw - 32px)" alt="“Namen einfügen” dialog: five lines from Excel with last and first name, below them the recognised preview in the columns Name and Vorname, button “5 Namen übernehmen”."></div>
+      </figure>
+      <figure>
+        <div class="shot"><img data-screen="new-exam" sizes="(min-width: 1272px) 440px, (min-width: 861px) 40vw, calc(100vw - 32px)" alt="“Neue Prüfung” dialog for 10b English: type Nachholschulaufgabe (make-up exam), category Schulaufgaben, point step 0.5, tasks and maximum points copied from Schulaufgabe 1 with 6 tasks."></div>
+        <figcaption>A make-up exam with the same six tasks as exam 1.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="section band f-correct" id="correct" aria-labelledby="correct-title">
+  <div class="container grid">
+    <div class="feature-head">
+      <p class="label">Step 2 · Mark</p>
+      <h2 id="correct-title">Enter one task for the whole class without touching the mouse</h2>
+      <p>Type the points and press Enter: the cursor moves to the next student. You mark task by task, just like working through the stack of papers. Every entry is saved immediately; there is no Save button.</p>
+    </div>
+    <figure class="wide">
+      <div class="shot"><img data-screen="grid" sizes="(min-width: 1272px) 800px, (min-width: 1081px) 64vw, calc(100vw - 32px)" alt="Points table of the exam: tasks Hören (listening), Gramm. (grammar), Wort (vocabulary), Lesen (reading), Medi. (mediation) and Text with maximum points 10, 14, 8, 12, 8 and 18; total and grade per row, one student marked absent, average and percentage per task at the bottom."></div>
+      <figcaption>White cells are entries, grey cells are calculated. Bottom: average and success rate per task.</figcaption>
+    </figure>
+    <aside aria-label="Entry in detail">
+      <dl class="keys">
+        <div><dt><kbd>Enter</kbd></dt><dd>confirms and moves down (can be switched to right)</dd></div>
+        <div><dt><kbd>Tab</kbd></dt><dd>moves right, <kbd>Shift</kbd>+<kbd>Tab</kbd> left</dd></div>
+        <div><dt><kbd>Ctrl</kbd>+<kbd>V</kbd></dt><dd>pastes a range from Excel; if one value is invalid, nothing is pasted</dd></div>
+        <div><dt><kbd>Ctrl</kbd>+<kbd>Z</kbd></dt><dd>undoes the last 100 changes per exam</dd></div>
+        <div><dt><code>3,5</code></dt><dd><code>3.5</code> and <code>,5</code> are accepted too</dd></div>
+      </dl>
+      <ul class="facts">
+        <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg><span>Values above the maximum are rejected, with a message in the status bar.</span></li>
+        <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8"/><path d="M10 19v-3.96 3.15"/><path d="M7 19h5"/><rect width="6" height="10" x="16" y="12" rx="2"/></svg><span>On a Surface, touch mode makes rows and buttons larger.</span></li>
+      </ul>
+    </aside>
+  </div>
+</section>
+
+<section class="section f-evaluate" id="evaluate" aria-labelledby="evaluate-title">
+  <div class="container grid">
+    <figure class="panel-shot">
+      <div class="shot"><img data-screen="panel" sizes="(min-width: 861px) 260px, 300px" alt="Evaluation of the exam: linear grade key with ranges and point limits, average 2.93, share of grades 5 and 6 11.5 percent, 26 of 27 sat the exam, grade distribution as a bar chart."></div>
+    </figure>
+    <div class="feature-head">
+      <p class="label">Step 3 · Evaluate</p>
+      <h2 id="evaluate-title">Grade key, distribution and average while you mark</h2>
+      <p>The evaluation next to the table updates with every entry: point limits per grade, count and share, average, share of grades 5 and 6. Notenblatt calculates with whole numbers instead of decimals, so there are no rounding errors as in Excel.</p>
+    </div>
+    <div class="feature-body">
+      <div class="two">
+        <div class="prose">
+          <h3>Error grading for dictations</h3>
+          <p>In subjects graded 1–6 an exam can get an extra “Fehler” (errors) column. The grade combines the grade for points and the grade for errors in the ratio you set.</p>
+          <div class="calc" aria-label="Worked example from the dictation of class 5a">
+            <p class="label">Example: dictation 1, class 5a</p>
+            <div><span>Grade for points (12.5 of 20)</span><span>2.8</span></div>
+            <div><span>3 errors × 0.3, from 1.0</span><span>1.9</span></div>
+            <div><span>Points : errors = 1 : 1, truncated</span><span>2.3</span></div>
+          </div>
+        </div>
+        <div class="prose">
+          <h3>Sharing results</h3>
+          <ul class="out-list">
+            <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg><span><strong>Print or PDF</strong> in the layout of the familiar grading sheet, with key and distribution.</span></li>
+            <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></svg><span><strong>Anonymous grade distribution</strong> (Notenspiegel) to post or read out in class.</span></li>
+            <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg><span><strong>CSV for Excel</strong>, per exam and for a subject's grade overview.</span></li>
+          </ul>
+        </div>
+      </div>
+      <figure>
+        <div class="shot"><img data-screen="error-grading" sizes="(min-width: 1272px) 800px, (min-width: 861px) 64vw, calc(100vw - 32px)" alt="Dictation of class 5a with error grading: columns for three tasks, total, grade for points, errors, grade for errors and the overall grade with ratio 1 to 1."></div>
+        <figcaption>Dictation with error grading: Note P. (points), Fehler (errors), Note F. and the overall grade.</figcaption>
+      </figure>
+      <details class="more">
+        <summary>Grading systems and rules <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+        <div class="more-body table-wrap">
+          <table>
+            <tr><th scope="row">Notenpunkte</th><td>0–15 points (upper secondary), distribution per point and share per grade group</td></tr>
+            <tr><th scope="row">Grades (linear)</th><td>1.0–6.0 with one decimal, distribution per grade 1–6</td></tr>
+            <tr><th scope="row">Error table</th><td>0.3 per error up to 9 errors, 0.5 from the 10th, 6.0 from 14 errors; half errors count half (truncated)</td></tr>
+            <tr><th scope="row">Missing values</th><td>Absent students and rows without entries are not counted; a yellow corner marks rows with open tasks</td></tr>
+            <tr><th scope="row">Formulas</th><td>The help page in the app explains both grading formulas with examples</td></tr>
+          </table>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="section band f-final" id="final-mark" aria-labelledby="final-title">
+  <div class="container grid">
+    <div class="feature-head">
+      <p class="label">Step 4 · Final mark</p>
+      <h2 id="final-title">The report card grade per subject, weighted and traceable</h2>
+      <p>A subject's grade overview shows all marks of the school year, the average per category, the weighted overall average and the final mark of every student. Oral marks are entered directly, without points.</p>
+    </div>
+    <div class="final-side weights">
+      <p class="label">Weighting of 9b English</p>
+      <div class="weight-bar" role="img" aria-label="Major exams 50 percent, small tests 25 percent, oral 25 percent">
+        <span>Schulaufgaben ×2</span><span>Small tests ×1</span><span>Oral ×1</span>
+      </div>
+      <p class="muted">50 % · 25 % · 25 %. You set weights and categories per subject.</p>
+    </div>
+    <figure class="wide">
+      <div class="shot"><img data-screen="overview-final" sizes="(min-width: 1272px) 1208px, calc(100vw - 32px)" alt="Grade overview of English, class 9b, school year 2025/26: per student a Kurzarbeit, oral tests and a presentation, then the averages for major exams, small tests and oral marks, the overall average and the final mark with one decimal."></div>
+      <figcaption>A whole school year: three major exams, three small tests, four oral marks. On the right, the overall average and final mark.</figcaption>
+    </figure>
+    <div class="below">
+      <div class="prose">
+        <h3>Your rules, not a spreadsheet template's</h3>
+        <p>Round half up, at exactly x.5 in the student's favour, or truncate. Final mark as a whole grade or with one decimal. Rounding always starts from the exact value, never from already rounded intermediate results.</p>
+        <p>Grades of different subjects are never averaged together: each subject of a class has its own overview and its own weighting.</p>
+      </div>
+      <figure>
+        <div class="shot"><img data-screen="weighting" sizes="(min-width: 1272px) 700px, (min-width: 861px) 56vw, calc(100vw - 32px)" alt="Weighting tab for English 9b: grading system linear grades 1.0 to 6.0, rounding truncate, final mark with one decimal, categories Schulaufgaben times 2, Kleine Leistungsnachweise times 1 and Mündlich times 1."></div>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="section f-safe" id="safeguard" aria-labelledby="safeguard-title">
+  <div class="container grid">
+    <div class="shots">
+      <figure>
+        <div class="shot"><img data-screen="settings-storage" sizes="(min-width: 1272px) 700px, (min-width: 861px) 56vw, calc(100vw - 32px)" alt="Settings, section storage location and encryption: location H:\Notenblatt, encryption on with AES-256 and password at start, buttons to change the password or remove encryption."></div>
+        <figcaption>Database on the school's home drive, encrypted with a password.</figcaption>
+      </figure>
+      <figure>
+        <div class="shot"><img data-screen="settings-template" sizes="(min-width: 1272px) 700px, (min-width: 861px) 56vw, calc(100vw - 32px)" alt="Settings, template for new subjects: grading system, rounding, final mark, error weighting and the categories Schriftlich times 3 and Mündlich times 1."></div>
+      </figure>
+    </div>
+    <div class="feature-text">
+      <div class="feature-head">
+        <p class="label">Step 5 · Safeguard</p>
+        <h2 id="safeguard-title">Your grades stay with you, encrypted if you want</h2>
+        <p>The database lives in your user profile or in a folder you choose, for example on the school's network drive. That way you use the same data in the staff room and at home, on one device at a time.</p>
+      </div>
+      <ul class="facts">
+        <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span><strong>AES-256</strong> for the database, password at start. Without the password the data is lost; there is no back door.</span></li>
+        <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 16h.01"/><path d="M2.212 11.577a2 2 0 0 0-.212.896V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5.527a2 2 0 0 0-.212-.896L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M21.946 12.013H2.054"/><path d="M6 16h.01"/></svg><span><strong>Backup</strong> as a single file, always encrypted with your password, e.g. for a USB stick or moving to a new device.</span></li>
+        <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v.5"/><path d="M12 10v4h4"/><path d="m12 14 1.535-1.605a5 5 0 0 1 8 1.5"/><path d="M22 22v-4h-4"/><path d="m22 18-1.535 1.605a5 5 0 0 1-8-1.5"/></svg><span><strong>Network drive briefly gone?</strong> Your entries stay in the app and are saved as soon as the folder is reachable again.</span></li>
+        <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg><span><strong>Updates in the app:</strong> Notenblatt shows what is new and only installs when you agree. Your data is kept.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section band" id="school-day" aria-labelledby="day-title">
+  <div class="container grid">
+    <div class="day-intro">
+      <p class="label">Example</p>
+      <h2 id="day-title">A school day with Notenblatt</h2>
+      <p class="muted">An invented but typical Thursday of an English teacher with classes 5a, 10b and Q11. It shows how the features fit together.</p>
+    </div>
+    <ol class="timeline">
+      <li>
+        <time datetime="07:35">7:35</time>
+        <div>
+          <h3>Staff room: set up a make-up exam</h3>
+          <p>A student in 10b was ill on the day of the exam. New exam, “Struktur übernehmen von…”: the same six tasks and maximum points, in one minute.</p>
+          <p class="uses">Prepare · <a href="#prepare">Reuse tasks</a></p>
+        </div>
+      </li>
+      <li>
+        <time datetime="10:05">10:05</time>
+        <div>
+          <h3>Lesson in Q11: an oral test</h3>
+          <p>On the Surface in touch mode, “Note ‚Mündlich‘ eintragen” and 12 Notenpunkte. The Q11 overview is up to date at once.</p>
+          <p class="uses">Final mark · <a href="#final-mark">Oral marks</a></p>
+        </div>
+      </li>
+      <li>
+        <time datetime="14:30">14:30</time>
+        <div>
+          <h3>At home: marking the 5a dictation</h3>
+          <p>Points and errors row by row, Enter moves on. Notenblatt combines the grade for points and the grade for errors 1 : 1.</p>
+          <p class="uses">Mark and evaluate · <a href="#evaluate">Error grading</a></p>
+        </div>
+      </li>
+      <li>
+        <time datetime="16:10">16:10</time>
+        <div>
+          <h3>Check and print the distribution</h3>
+          <p>Average 2.30, no grade 5 or 6. Anonymous distribution as PDF for handing back the papers tomorrow.</p>
+          <p class="uses">Evaluate · <a href="#evaluate">Print and PDF</a></p>
+        </div>
+      </li>
+      <li>
+        <time datetime="19:45">19:45</time>
+        <div>
+          <h3>Before parents' evening</h3>
+          <p>Grade overview of 10b: average per category, overall average, final mark. Then a backup to the USB stick.</p>
+          <p class="uses">Final mark and safeguard · <a href="#safeguard">Backup</a></p>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="section" id="privacy" aria-labelledby="privacy-title">
+  <div class="container">
+    <div class="section-head">
+      <p class="label">Privacy and technology</p>
+      <h2 id="privacy-title">No server, no account: student data never leaves your device</h2>
+    </div>
+    <dl class="trust">
+      <div>
+        <dt><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>Data protection (GDPR)</dt>
+        <dd>No telemetry, no error reports, no ads. Deleted students, classes and exams are also physically removed from the file. Notenblatt points out classes whose school year ended more than 12 months ago (configurable: 6, 12 or 24 months, or off).</dd>
+      </div>
+      <div>
+        <dt><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 16h.01"/><path d="M2.212 11.577a2 2 0 0 0-.212.896V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5.527a2 2 0 0 0-.212-.896L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M21.946 12.013H2.054"/><path d="M6 16h.01"/></svg>Storage, not hosting</dt>
+        <dd>There is no Notenblatt server and no cloud. The data lives in <code>%APPDATA%\Notenblatt</code> or in a folder you choose, such as your school's network drive.</dd>
+      </div>
+      <div>
+        <dt><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Roles and permissions</dt>
+        <dd>Notenblatt is a tool for one teacher, without user accounts or roles. Access is protected by your Windows account and the encryption password. A database is open on one device at a time.</dd>
+      </div>
+      <div>
+        <dt><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M19 12.859a10 10 0 0 0-2.007-1.523"/><path d="M2 8.82a15 15 0 0 1 4.177-2.643"/><path d="M22 8.82a15 15 0 0 0-11.288-3.764"/><path d="m2 2 20 20"/></svg>Offline</dt>
+        <dd>Everything works without the internet. The only connection is the update check against GitHub, which sends no data from Notenblatt. You can turn it off in the settings.</dd>
+      </div>
+      <div>
+        <dt><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8"/><path d="M10 19v-3.96 3.15"/><path d="M7 19h5"/><rect width="6" height="10" x="16" y="12" rx="2"/></svg>Devices</dt>
+        <dd>Windows 10 and 11 on PCs and laptops (x64) and ARM devices such as Surface Pro X and Surface Pro 11, with a touch mode. There is no version for macOS, iPad or Linux.</dd>
+      </div>
+      <div>
+        <dt><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>Open source</dt>
+        <dd>Notenblatt is released under the MIT licence. The source code is on <a href="{{REPO}}">GitHub</a>, open to your school's IT or data protection officer.</dd>
+      </div>
+    </dl>
+    <p class="trust-note">Whether you may process student data on a private device is decided by your federal state or school, often with approval from the head teacher. Notenblatt makes the technical requirements easier (encryption, deletion periods) but does not replace that approval.</p>
+  </div>
+</section>
+
+<section class="section band" id="faq" aria-labelledby="faq-title">
+  <div class="container grid">
+    <div class="faq-wrap">
+      <div class="section-head">
+        <p class="label">Questions</p>
+        <h2 id="faq-title">What colleagues ask before switching</h2>
+      </div>
+      <div class="faq">
+        <details>
+          <summary>What does Notenblatt cost? <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="answer"><p>Nothing. Notenblatt is free and open source (MIT licence), with no ads, no subscription and no account.</p></div>
+        </details>
+        <details>
+          <summary>How long does it take to learn? <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="answer"><p>On first start, a five-step tour walks you through the main settings; it takes about a minute. Then you create a class, paste the names and enter your first exam. If you know the Excel grading sheet, you will feel at home: the table looks similar.</p></div>
+        </details>
+        <details>
+          <summary>Can I get my data out again if I stop using it? <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="answer"><p>Yes. Every exam and every grade overview exports to CSV for Excel, and to PDF. The backup (<code>.notenblatt</code>) contains all data, encrypted with your password, and can be restored on any device with Notenblatt.</p></div>
+        </details>
+        <details>
+          <summary>Does the school's IT have to install or approve anything? <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="answer"><p>No. The installer needs no administrator rights and installs for your user account only. There is no server to run and no accounts to manage. Updates come through the app itself.</p><p>Because the installer is not signed, Windows shows a SmartScreen warning on first launch; <a href="#download">here is what to do</a>.</p></div>
+        </details>
+        <details>
+          <summary>Can I bring over marks from my old Excel sheet? <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="answer"><p>Yes, by copy and paste: names via “Namen einfügen…”, points as a selected range with <kbd>Ctrl</kbd>+<kbd>V</kbd> straight into the table. If a value is invalid, for example above the maximum, nothing is pasted and Notenblatt tells you which one.</p></div>
+        </details>
+        <details>
+          <summary>What if I forget the password? <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="answer"><p>Then the encrypted data is lost. There is deliberately no back door, not even for the developer. Keep the password safe, for example in a password manager.</p></div>
+        </details>
+        <details>
+          <summary>Can I work on two devices? <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="answer"><p>Yes, one after the other. Put the database in a shared folder, such as a network drive, and choose it on both devices. If it is open on one device, the other one tells you. Keep Notenblatt at the same version on both.</p></div>
+        </details>
+        <details>
+          <summary>Is the app available in English? <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="answer"><p>No. Notenblatt is made for German schools and its interface is German. This page and the release notes are also available in English.</p></div>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section download" id="download" aria-labelledby="download-title">
+  <div class="container grid">
+    <div class="dl-head">
+      <p class="label">Download</p>
+      <h2 id="download-title">Download Notenblatt and start in two minutes</h2>
+      <p class="muted">{{DOWNLOAD_META}}. Free, no account. What changed in each version is listed under <a href="releases.html">Releases</a>.</p>
+    </div>
+    <div class="dl-options">
+      <a class="btn" href="{{X64}}">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>
+        Download now
+      </a>
+      <div class="dl-alt">
+        <span>For regular Windows PCs and laptops (x64)<!--if:release-->, {{X64_SIZE}}<!--end-->.</span>
+        <span>ARM device such as Surface Pro X or Surface Pro 11? <a href="{{ARM64}}">Download the ARM64 version</a><!--if:release--> ({{ARM64_SIZE}})<!--end-->.</span>
+        <span>Windows 10 or 11. No administrator rights needed.</span>
+      </div>
+    </div>
+    <div class="smartscreen">
+      <h3>Windows warns on first launch</h3>
+      <ol>
+        <li>The installer is not signed, so Windows shows “Der Computer wurde durch Windows geschützt” (Windows protected your PC).</li>
+        <li>Click <strong>“Weitere Informationen”</strong> (More info), then <strong>“Trotzdem ausführen”</strong> (Run anyway).</li>
+        <li>The installer puts Notenblatt in your user folder (<code>%LOCALAPPDATA%\Programs\Notenblatt</code>) and adds a desktop shortcut.</li>
+      </ol>
+    </div>
+  </div>
+</section>

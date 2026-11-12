@@ -36,6 +36,11 @@ export function compareVersions(a: string, b: string): number {
   return 0;
 }
 
+/** File name of the installer attached to a release (matches build.win.artifactName in package.json). */
+export function installerName(version: string, arch: Arch): string {
+  return `Notenblatt-Setup-${version}-${arch}.exe`;
+}
+
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 
 const isAllowedUrl = (u: string): boolean => {
@@ -61,7 +66,7 @@ export function pickUpdate(release: unknown, current: string, arch: Arch, allowU
   const v = parseVersion(tag);
   if (!v || !parseVersion(current) || compareVersions(tag, current) <= 0) return null;
   const version = v.join('.');
-  const wanted = `Notenblatt-Setup-${version}-${arch}.exe`;
+  const wanted = installerName(version, arch);
   const assets = Array.isArray(r.assets) ? (r.assets as unknown[]) : [];
   for (const a of assets) {
     if (typeof a !== 'object' || a === null) continue;

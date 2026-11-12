@@ -1,0 +1,442 @@
+<!-- {
+  "title": "Notenblatt – Prüfungen offline bewerten",
+  "description": "Notenblatt ersetzt die Excel-Notentabelle: Punkte je Aufgabe eintragen, Note, Notenschlüssel, Notenspiegel und gewichtete Endnote stehen sofort da. Offline, für Windows, kostenlos."
+} -->
+<section class="hero" aria-labelledby="hero-title">
+  <div class="container grid">
+    <div class="hero-title">
+      <p class="label">Notenblatt für Windows</p>
+      <h1 id="hero-title">Punkte eintragen, die Note steht sofort da.</h1>
+    </div>
+    <div class="hero-side">
+      <p>Notenblatt ersetzt die Excel-Notentabelle für Lehrkräfte, die Prüfungen selbst korrigieren: Punkte je Aufgabe, Notenschlüssel, Notenspiegel und gewichtete Endnote, ohne eine einzige Formel.</p>
+      <a class="btn" href="{{X64}}">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>
+        Jetzt herunterladen
+      </a>
+      <p class="cta-meta">
+        <span><!--if:release-->{{DOWNLOAD_META}} · Windows x64 · {{X64_SIZE}}<!--else-->{{DOWNLOAD_META}}<!--end--></span>
+        <span>Für ARM-Geräte (Surface Pro X, Surface Pro 11): <a href="{{ARM64}}">ARM64-Version</a></span>
+        <span><a href="#korrigieren">So funktioniert es</a></span>
+      </p>
+    </div>
+
+    <dl class="specs">
+      <div><dt>Notensysteme</dt><dd>Notenpunkte 0–15, Noten 1,0–6,0</dd></div>
+      <div><dt>Daten</dt><dd>offline auf Ihrem Gerät, AES-256 verschlüsselbar</dd></div>
+      <div><dt>Ausgabe</dt><dd>Druck, PDF, CSV für Excel</dd></div>
+      <div><dt>System</dt><dd>Windows 10 und 11, x64 und ARM64</dd></div>
+    </dl>
+
+    <figure class="hero-shot">
+      <div class="shot pins">
+        <img data-screen="exam-grid" data-eager sizes="(min-width: 1272px) 1208px, calc(100vw - 32px)" alt="Notenblatt mit der Englisch-Schulaufgabe 1 der Klasse 10b: links Klassen nach Schuljahren, in der Mitte Punkte je Aufgabe für 27 Schüler/innen mit Summe und Note, rechts der Notenschlüssel und die Notenverteilung.">
+        <span class="pin" style="--x: 9%; --y: 16%" aria-hidden="true">1</span>
+        <span class="pin" style="--x: 25%; --y: 19.5%" aria-hidden="true">2</span>
+        <span class="pin" style="--x: 72%; --y: 19.5%" aria-hidden="true">3</span>
+        <span class="pin" style="--x: 92%; --y: 22.6%" aria-hidden="true">4</span>
+        <span class="pin" style="--x: 92%; --y: 55%" aria-hidden="true">5</span>
+      </div>
+    </figure>
+    <ol class="pin-legend hero-legend" aria-label="Was im Bild zu sehen ist">
+      <li><b aria-hidden="true">1</b><span>Klassen und Fächer, nach Schuljahr geordnet</span></li>
+      <li><b aria-hidden="true">2</b><span>Punkte je Aufgabe, Enter springt zur nächsten Zeile</span></li>
+      <li><b aria-hidden="true">3</b><span>Summe und Note, sofort berechnet</span></li>
+      <li><b aria-hidden="true">4</b><span>Notenschlüssel mit Anzahl und Anteil</span></li>
+      <li><b aria-hidden="true">5</b><span>Durchschnitt und Notenverteilung</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="section band" id="funktionen" aria-labelledby="funktionen-title">
+  <div class="container">
+    <div class="section-head">
+      <p class="label">Funktionen</p>
+      <h2 id="funktionen-title">Alle Funktionen, geordnet nach Ihrem Arbeitsablauf</h2>
+      <p class="lead">Vom Anlegen der Klasse bis zur Zeugnisnote. Jeder Punkt führt zur ausführlichen Beschreibung weiter unten.</p>
+    </div>
+    <ol class="steps">
+      <li class="step">
+        <p class="label">Schritt 1</p>
+        <h3><a href="#vorbereiten">Vorbereiten</a></h3>
+        <ul>
+          <li>Klassen je Schuljahr</li>
+          <li>Namenslisten aus Excel oder ASV einfügen</li>
+          <li>Fächer, Kategorien und Gewichte</li>
+          <li>Aufgaben aus früheren Prüfungen übernehmen</li>
+        </ul>
+      </li>
+      <li class="step">
+        <p class="label">Schritt 2</p>
+        <h3><a href="#korrigieren">Korrigieren</a></h3>
+        <ul>
+          <li>Punkte je Aufgabe oder nur die Summe</li>
+          <li>Eingabe nur mit der Tastatur</li>
+          <li>Einfügen aus Excel, Rückgängig</li>
+          <li>Fehlende Schüler/innen markieren</li>
+        </ul>
+      </li>
+      <li class="step">
+        <p class="label">Schritt 3</p>
+        <h3><a href="#auswerten">Auswerten</a></h3>
+        <ul>
+          <li>Notenschlüssel und Notenspiegel</li>
+          <li>Durchschnitt, Anteil Note 5 und 6</li>
+          <li>Fehlerbewertung für Diktate</li>
+          <li>Druck und PDF, CSV für Excel</li>
+        </ul>
+      </li>
+      <li class="step">
+        <p class="label">Schritt 4</p>
+        <h3><a href="#endnote">Endnote bilden</a></h3>
+        <ul>
+          <li>Notenübersicht je Fach</li>
+          <li>Mündliche Noten direkt eintragen</li>
+          <li>Gewichteter Gesamtdurchschnitt</li>
+          <li>Rundung und Endnote nach Ihrer Regel</li>
+        </ul>
+      </li>
+      <li class="step">
+        <p class="label">Schritt 5</p>
+        <h3><a href="#sichern">Sichern</a></h3>
+        <ul>
+          <li>Verschlüsselung mit Passwort</li>
+          <li>Speicherort auf dem Netzlaufwerk</li>
+          <li>Datensicherung auf USB-Stick</li>
+          <li>Updates in der App</li>
+        </ul>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="section f-prepare" id="vorbereiten" aria-labelledby="vorbereiten-title">
+  <div class="container grid">
+    <div class="feature-text">
+      <div class="feature-head">
+        <p class="label">Schritt 1 · Vorbereiten</p>
+        <h2 id="vorbereiten-title">Eine Klasse ist in zwei Minuten angelegt</h2>
+        <p>Kopieren Sie die Namensliste aus Excel oder ASV und fügen Sie sie ein. Notenblatt erkennt Nachname und Vorname, auch wenn sie in zwei Spalten stehen. Für eine neue Prüfung übernehmen Sie Aufgaben und Höchstpunkte aus einer früheren, etwa für die Parallelklasse oder eine Nachholschulaufgabe.</p>
+      </div>
+      <ul class="facts">
+        <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></svg><span>Klassen mit Schuljahr; zum neuen Schuljahr kopieren Sie eine Klasse mit allen Schüler/innen und Fächern.</span></li>
+        <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg><span>Je Fach eigene Gewichtung, eigenes Notensystem und eigene Rundung. Vorgaben für neue Fächer legen Sie einmal fest.</span></li>
+      </ul>
+      <details class="more">
+        <summary>Formate und Arten im Detail <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+        <div class="more-body table-wrap">
+          <table>
+            <tr><th scope="row">Namenslisten</th><td><code>Müller, Anna</code> · <code>Müller⇥Anna</code> (zwei Spalten aus Excel/ASV) · <code>Müller Anna</code>; „Spalten tauschen“, wenn der Vorname zuerst steht</td></tr>
+            <tr><th scope="row">Prüfungsarten</th><td>Klassenarbeit, Schulaufgabe, Kurzarbeit, Stegreifaufgabe, Test, Klausur oder eine eigene Bezeichnung</td></tr>
+            <tr><th scope="row">Punkteschritt</th><td>1, 0,5 oder 0,25 Punkte</td></tr>
+            <tr><th scope="row">Kategorien</th><td>Vorgabe „Schriftlich ×3“ und „Mündlich ×1“; umbenennen, ergänzen (z. B. „Referat“), Gewichte frei</td></tr>
+            <tr><th scope="row">Teilgruppen</th><td>Schüler/innen, die ein Fach nicht belegen (Wahlfach, geteilte Gruppe), nehmen Sie aus dem Fach heraus</td></tr>
+          </table>
+        </div>
+      </details>
+    </div>
+    <div class="stack">
+      <figure>
+        <div class="shot"><img data-screen="paste-names" sizes="(min-width: 1272px) 440px, (min-width: 861px) 40vw, calc(100vw - 32px)" alt="Dialog „Namen einfügen“: fünf Zeilen aus Excel mit Nachname und Vorname, darunter die erkannte Vorschau in den Spalten Name und Vorname, Schaltfläche „5 Namen übernehmen“."></div>
+      </figure>
+      <figure>
+        <div class="shot"><img data-screen="new-exam" sizes="(min-width: 1272px) 440px, (min-width: 861px) 40vw, calc(100vw - 32px)" alt="Dialog „Neue Prüfung“ für 10b Englisch: Art Nachholschulaufgabe, Kategorie Schulaufgaben, Punkteschritt 0,5, Aufgaben und Höchstpunkte übernommen von Schulaufgabe 1 mit 6 Aufgaben."></div>
+        <figcaption>Nachholschulaufgabe mit denselben sechs Aufgaben wie die Schulaufgabe 1.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="section band f-correct" id="korrigieren" aria-labelledby="korrigieren-title">
+  <div class="container grid">
+    <div class="feature-head">
+      <p class="label">Schritt 2 · Korrigieren</p>
+      <h2 id="korrigieren-title">Eine Aufgabe für die ganze Klasse eintragen, ohne die Maus</h2>
+      <p>Tippen Sie die Punkte und drücken Sie Enter: Der Cursor springt zur nächsten Schülerin. So korrigieren Sie Aufgabe für Aufgabe, wie auf dem Papierstapel. Gespeichert wird jede Eingabe sofort; einen Speichern-Knopf gibt es nicht.</p>
+    </div>
+    <figure class="wide">
+      <div class="shot"><img data-screen="grid" sizes="(min-width: 1272px) 800px, (min-width: 1081px) 64vw, calc(100vw - 32px)" alt="Punktetabelle der Schulaufgabe: Aufgaben Hören, Grammatik, Wortschatz, Lesen, Mediation und Text mit Höchstpunkten 10, 14, 8, 12, 8 und 18; je Zeile Summe und Note, eine Schülerin als fehlend markiert, unten Durchschnitt und Anteil in Prozent je Aufgabe."></div>
+      <figcaption>Weiße Zellen sind Eingaben, graue werden berechnet. Unten: Durchschnitt und Lösungsquote je Aufgabe.</figcaption>
+    </figure>
+    <aside aria-label="Eingabe im Detail">
+      <dl class="keys">
+        <div><dt><kbd>Enter</kbd></dt><dd>übernimmt und geht nach unten (umschaltbar auf rechts)</dd></div>
+        <div><dt><kbd>Tab</kbd></dt><dd>nach rechts, <kbd>Umschalt</kbd>+<kbd>Tab</kbd> nach links</dd></div>
+        <div><dt><kbd>Strg</kbd>+<kbd>V</kbd></dt><dd>fügt einen Bereich aus Excel ein; ist ein Wert ungültig, wird nichts eingefügt</dd></div>
+        <div><dt><kbd>Strg</kbd>+<kbd>Z</kbd></dt><dd>macht die letzten 100 Änderungen je Prüfung rückgängig</dd></div>
+        <div><dt><code>3,5</code></dt><dd>auch <code>3.5</code> und <code>,5</code> werden angenommen</dd></div>
+      </dl>
+      <ul class="facts">
+        <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg><span>Werte über der Höchstpunktzahl werden abgewiesen, mit Hinweis in der Statusleiste.</span></li>
+        <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8"/><path d="M10 19v-3.96 3.15"/><path d="M7 19h5"/><rect width="6" height="10" x="16" y="12" rx="2"/></svg><span>Auf dem Surface: Im Touch-Modus sind Zeilen und Schaltflächen größer.</span></li>
+      </ul>
+    </aside>
+  </div>
+</section>
+
+<section class="section f-evaluate" id="auswerten" aria-labelledby="auswerten-title">
+  <div class="container grid">
+    <figure class="panel-shot">
+      <div class="shot"><img data-screen="panel" sizes="(min-width: 861px) 260px, 300px" alt="Auswertung der Schulaufgabe: Notenschlüssel linear mit Bereichen und Punktgrenzen, Durchschnitt 2,93, Anteil Note 5 und 6 11,5 Prozent, mitgeschrieben 26 von 27, Notenverteilung als Säulendiagramm."></div>
+    </figure>
+    <div class="feature-head">
+      <p class="label">Schritt 3 · Auswerten</p>
+      <h2 id="auswerten-title">Notenschlüssel, Notenspiegel und Durchschnitt, während Sie korrigieren</h2>
+      <p>Die Auswertung rechts neben der Tabelle rechnet bei jeder Eingabe mit: Punktgrenzen je Note, Anzahl und Anteil, Durchschnitt, Anteil der Noten 5 und 6. Notenblatt rechnet mit ganzen Zahlen statt Kommazahlen, deshalb gibt es keine Rundungsfehler wie in Excel.</p>
+    </div>
+    <div class="feature-body">
+      <div class="two">
+        <div class="prose">
+          <h3>Fehlerbewertung für Diktate</h3>
+          <p>In Fächern mit Noten 1–6 bekommt eine Prüfung auf Wunsch eine Spalte „Fehler“. Die Note ergibt sich aus der Note der Punkte und der Note der Fehler im eingestellten Verhältnis.</p>
+          <div class="calc" aria-label="Rechenbeispiel aus dem Diktat der Klasse 5a">
+            <p class="label">Beispiel: Diktat 1, Klasse 5a</p>
+            <div><span>Note der Punkte (12,5 von 20)</span><span>2,8</span></div>
+            <div><span>3 Fehler × 0,3, ab 1,0</span><span>1,9</span></div>
+            <div><span>Punkte : Fehler = 1 : 1, abgeschnitten</span><span>2,3</span></div>
+          </div>
+        </div>
+        <div class="prose">
+          <h3>Ergebnisse weitergeben</h3>
+          <ul class="out-list">
+            <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg><span><strong>Drucken oder PDF</strong> im Layout der gewohnten Notentabelle, mit Schlüssel und Verteilung.</span></li>
+            <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></svg><span><strong>Notenspiegel ohne Namen</strong> zum Aushängen oder Vorlesen in der Klasse.</span></li>
+            <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg><span><strong>CSV für Excel</strong>, je Prüfung und für die Notenübersicht eines Fachs.</span></li>
+          </ul>
+        </div>
+      </div>
+      <figure>
+        <div class="shot"><img data-screen="error-grading" sizes="(min-width: 1272px) 800px, (min-width: 861px) 64vw, calc(100vw - 32px)" alt="Diktat der Klasse 5a mit Fehlerbewertung: Spalten für drei Aufgaben, Summe, Note Punkte, Fehler, Note Fehler und die Gesamtnote mit Verhältnis 1 zu 1."></div>
+        <figcaption>Diktat mit Fehlerbewertung: Note P., Fehler, Note F. und die Gesamtnote.</figcaption>
+      </figure>
+      <details class="more">
+        <summary>Notensysteme und Rechenregeln <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+        <div class="more-body table-wrap">
+          <table>
+            <tr><th scope="row">Notenpunkte</th><td>0–15 NP, Verteilung je Notenpunkt und Anteil je Notenstufe</td></tr>
+            <tr><th scope="row">Noten (linear)</th><td>1,0–6,0 mit einer Nachkommastelle, Verteilung je Notenstufe 1–6</td></tr>
+            <tr><th scope="row">Fehlertabelle</th><td>0,3 je Fehler bis 9 Fehler, 0,5 ab dem 10. Fehler, ab 14 Fehlern 6,0; halbe Fehler zählen halb (abgeschnitten)</td></tr>
+            <tr><th scope="row">Fehlende Werte</th><td>Fehlende Schüler/innen und Zeilen ohne Eingabe zählen nicht; ein gelbes Eck zeigt Zeilen mit offenen Aufgaben</td></tr>
+            <tr><th scope="row">Formeln</th><td>Die Hilfe in der App erklärt beide Notenformeln mit Beispielen</td></tr>
+          </table>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="section band f-final" id="endnote" aria-labelledby="endnote-title">
+  <div class="container grid">
+    <div class="feature-head">
+      <p class="label">Schritt 4 · Endnote bilden</p>
+      <h2 id="endnote-title">Die Zeugnisnote je Fach, gewichtet und nachvollziehbar</h2>
+      <p>Die Notenübersicht eines Fachs zeigt alle Noten des Schuljahres, den Durchschnitt je Kategorie, den gewichteten Gesamtdurchschnitt und die Endnote jeder Schülerin und jedes Schülers. Mündliche Noten tragen Sie direkt ein, ohne Punkte.</p>
+    </div>
+    <div class="final-side weights">
+      <p class="label">Gewichtung 9b Englisch</p>
+      <div class="weight-bar" role="img" aria-label="Schulaufgaben 50 Prozent, Kleine Leistungsnachweise 25 Prozent, Mündlich 25 Prozent">
+        <span>Schulaufgaben ×2</span><span>Kleine LN ×1</span><span>Mündl. ×1</span>
+      </div>
+      <p class="muted">50 % · 25 % · 25 %. Gewichte und Kategorien legen Sie je Fach fest.</p>
+    </div>
+    <figure class="wide">
+      <div class="shot"><img data-screen="overview-final" sizes="(min-width: 1272px) 1208px, calc(100vw - 32px)" alt="Notenübersicht Englisch, Klasse 9b, Schuljahr 2025/26: je Schüler/in Kurzarbeit, Abfragen und Referat, dann Durchschnitt Schulaufgaben, Kleine Leistungsnachweise und Mündlich, Gesamtdurchschnitt und Endnote mit einer Nachkommastelle."></div>
+      <figcaption>Ein ganzes Schuljahr: drei Schulaufgaben, drei kleine Leistungsnachweise, vier mündliche Noten. Rechts der Gesamtdurchschnitt und die Endnote.</figcaption>
+    </figure>
+    <div class="below">
+      <div class="prose">
+        <h3>Ihre Regeln, nicht die einer Tabellenvorlage</h3>
+        <p>Rundung kaufmännisch, bei genau x,5 zugunsten der Schülerin oder des Schülers, oder abschneiden. Endnote ganz oder mit einer Nachkommastelle. Gerundet wird immer aus dem exakten Wert, nicht aus bereits gerundeten Zwischenergebnissen.</p>
+        <p>Noten verschiedener Fächer werden nie zusammengerechnet: Jedes Fach einer Klasse hat seine eigene Übersicht und seine eigene Gewichtung.</p>
+      </div>
+      <figure>
+        <div class="shot"><img data-screen="weighting" sizes="(min-width: 1272px) 700px, (min-width: 861px) 56vw, calc(100vw - 32px)" alt="Reiter Gewichtung für Englisch 9b: Notensystem Noten 1,0 bis 6,0 linear, Rundung abschneiden, Endnote mit einer Nachkommastelle, Kategorien Schulaufgaben mal 2, Kleine Leistungsnachweise mal 1 und Mündlich mal 1."></div>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="section f-safe" id="sichern" aria-labelledby="sichern-title">
+  <div class="container grid">
+    <div class="shots">
+      <figure>
+        <div class="shot"><img data-screen="settings-storage" sizes="(min-width: 1272px) 700px, (min-width: 861px) 56vw, calc(100vw - 32px)" alt="Einstellungen, Abschnitt Speicherort und Verschlüsselung: Speicherort H:\Notenblatt, Verschlüsselung an mit AES-256 und Passwort beim Start, Schaltflächen Passwort ändern und Verschlüsselung aufheben."></div>
+        <figcaption>Datenbank auf dem Home-Laufwerk der Schule, mit Passwort verschlüsselt.</figcaption>
+      </figure>
+      <figure>
+        <div class="shot"><img data-screen="settings-template" sizes="(min-width: 1272px) 700px, (min-width: 861px) 56vw, calc(100vw - 32px)" alt="Einstellungen, Vorlage für neue Fächer: Notensystem, Rundung, Endnote, Fehlerbewertung und die Kategorien Schriftlich mal 3 und Mündlich mal 1."></div>
+      </figure>
+    </div>
+    <div class="feature-text">
+      <div class="feature-head">
+        <p class="label">Schritt 5 · Sichern</p>
+        <h2 id="sichern-title">Ihre Noten bleiben bei Ihnen, verschlüsselt, wenn Sie wollen</h2>
+        <p>Die Datenbank liegt in Ihrem Benutzerprofil oder in einem Ordner Ihrer Wahl, zum Beispiel auf dem Netzlaufwerk der Schule. So arbeiten Sie im Lehrerzimmer und zu Hause mit denselben Daten, immer an einem Gerät zur selben Zeit.</p>
+      </div>
+      <ul class="facts">
+        <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span><strong>AES-256</strong> für die Datenbank, Passwort beim Start. Ohne Passwort sind die Daten verloren; es gibt keine Hintertür.</span></li>
+        <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 16h.01"/><path d="M2.212 11.577a2 2 0 0 0-.212.896V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5.527a2 2 0 0 0-.212-.896L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M21.946 12.013H2.054"/><path d="M6 16h.01"/></svg><span><strong>Datensicherung</strong> als eine Datei, immer mit Ihrem Passwort verschlüsselt, etwa für den USB-Stick oder den Umzug auf ein neues Gerät.</span></li>
+        <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v.5"/><path d="M12 10v4h4"/><path d="m12 14 1.535-1.605a5 5 0 0 1 8 1.5"/><path d="M22 22v-4h-4"/><path d="m22 18-1.535 1.605a5 5 0 0 1-8-1.5"/></svg><span><strong>Netzlaufwerk kurz weg?</strong> Ihre Eingaben bleiben im Programm und werden gespeichert, sobald der Ordner wieder erreichbar ist.</span></li>
+        <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg><span><strong>Updates in der App:</strong> Notenblatt zeigt, was neu ist, und installiert erst, wenn Sie zustimmen. Ihre Daten bleiben erhalten.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section band" id="schultag" aria-labelledby="schultag-title">
+  <div class="container grid">
+    <div class="day-intro">
+      <p class="label">Beispiel</p>
+      <h2 id="schultag-title">Ein Schultag mit Notenblatt</h2>
+      <p class="muted">Ein ausgedachter, aber typischer Donnerstag einer Englischlehrerin mit den Klassen 5a, 10b und Q11. Er zeigt, wie die Funktionen zusammenhängen.</p>
+    </div>
+    <ol class="timeline">
+      <li>
+        <time datetime="07:35">7:35</time>
+        <div>
+          <h3>Lehrerzimmer: Nachholschulaufgabe anlegen</h3>
+          <p>Ein Schüler der 10b war bei der Schulaufgabe krank. Neue Prüfung, „Struktur übernehmen von…“: dieselben sechs Aufgaben und Höchstpunkte, in einer Minute.</p>
+          <p class="uses">Vorbereiten · <a href="#vorbereiten">Aufgaben übernehmen</a></p>
+        </div>
+      </li>
+      <li>
+        <time datetime="10:05">10:05</time>
+        <div>
+          <h3>Unterricht in der Q11: Abfrage</h3>
+          <p>Auf dem Surface im Touch-Modus „Note ‚Mündlich‘ eintragen“ und 12 Notenpunkte vergeben. Die Übersicht der Q11 ist sofort aktuell.</p>
+          <p class="uses">Endnote bilden · <a href="#endnote">Mündliche Noten</a></p>
+        </div>
+      </li>
+      <li>
+        <time datetime="14:30">14:30</time>
+        <div>
+          <h3>Zu Hause: Diktat der 5a korrigieren</h3>
+          <p>Punkte und Fehler Zeile für Zeile, Enter springt weiter. Notenblatt verrechnet Note der Punkte und Note der Fehler im Verhältnis 1 : 1.</p>
+          <p class="uses">Korrigieren und Auswerten · <a href="#auswerten">Fehlerbewertung</a></p>
+        </div>
+      </li>
+      <li>
+        <time datetime="16:10">16:10</time>
+        <div>
+          <h3>Notenspiegel prüfen und drucken</h3>
+          <p>Durchschnitt 2,30, keine Note 5 oder 6. Notenspiegel ohne Namen als PDF für die Rückgabe morgen.</p>
+          <p class="uses">Auswerten · <a href="#auswerten">Druck und PDF</a></p>
+        </div>
+      </li>
+      <li>
+        <time datetime="19:45">19:45</time>
+        <div>
+          <h3>Vor dem Elternsprechtag</h3>
+          <p>Notenübersicht der 10b: Durchschnitt je Kategorie, Gesamtdurchschnitt, Endnote. Danach eine Datensicherung auf den USB-Stick.</p>
+          <p class="uses">Endnote bilden und Sichern · <a href="#sichern">Datensicherung</a></p>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="section" id="datenschutz" aria-labelledby="datenschutz-title">
+  <div class="container">
+    <div class="section-head">
+      <p class="label">Datenschutz und Technik</p>
+      <h2 id="datenschutz-title">Kein Server, kein Konto: Schülerdaten verlassen Ihr Gerät nicht</h2>
+    </div>
+    <dl class="trust">
+      <div>
+        <dt><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>Datenschutz (DSGVO)</dt>
+        <dd>Keine Telemetrie, keine Fehlerberichte, keine Werbung. Gelöschte Schüler/innen, Klassen und Prüfungen werden auch physisch aus der Datei entfernt. Notenblatt weist auf Klassen hin, deren Schuljahr länger als 12 Monate vorbei ist (einstellbar: 6, 12 oder 24 Monate oder aus).</dd>
+      </div>
+      <div>
+        <dt><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 16h.01"/><path d="M2.212 11.577a2 2 0 0 0-.212.896V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5.527a2 2 0 0 0-.212-.896L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M21.946 12.013H2.054"/><path d="M6 16h.01"/></svg>Speicherort statt Hosting</dt>
+        <dd>Es gibt keinen Notenblatt-Server und keine Cloud. Die Daten liegen in <code>%APPDATA%\Notenblatt</code> oder in einem Ordner, den Sie wählen, etwa auf dem Netzlaufwerk Ihrer Schule.</dd>
+      </div>
+      <div>
+        <dt><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Rollen und Rechte</dt>
+        <dd>Notenblatt ist ein Werkzeug für eine Lehrkraft, ohne Benutzerkonten und ohne Rollen. Zugriff schützen Ihr Windows-Konto und das Passwort der Verschlüsselung. Eine Datenbank ist immer nur auf einem Gerät gleichzeitig geöffnet.</dd>
+      </div>
+      <div>
+        <dt><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M19 12.859a10 10 0 0 0-2.007-1.523"/><path d="M2 8.82a15 15 0 0 1 4.177-2.643"/><path d="M22 8.82a15 15 0 0 0-11.288-3.764"/><path d="m2 2 20 20"/></svg>Offline</dt>
+        <dd>Alles funktioniert ohne Internet. Die einzige Verbindung ist die Suche nach Updates bei GitHub; dabei werden keine Daten aus Notenblatt übertragen. Sie lässt sich in den Einstellungen abschalten.</dd>
+      </div>
+      <div>
+        <dt><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8"/><path d="M10 19v-3.96 3.15"/><path d="M7 19h5"/><rect width="6" height="10" x="16" y="12" rx="2"/></svg>Geräte</dt>
+        <dd>Windows 10 und 11 auf PCs und Laptops (x64) und ARM-Geräten wie Surface Pro X und Surface Pro 11, mit Touch-Modus. Für macOS, iPad und Linux gibt es Notenblatt nicht.</dd>
+      </div>
+      <div>
+        <dt><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>Offener Quellcode</dt>
+        <dd>Notenblatt steht unter der MIT-Lizenz. Der Quellcode ist auf <a href="{{REPO}}">GitHub</a> einsehbar, auch für die IT Ihrer Schule oder die Datenschutzbeauftragten.</dd>
+      </div>
+    </dl>
+    <p class="trust-note">Ob Sie Schülerdaten auf einem privaten Gerät verarbeiten dürfen, regelt Ihr Bundesland oder Ihre Schule, oft mit einer Genehmigung durch die Schulleitung. Notenblatt erleichtert die technischen Anforderungen (Verschlüsselung, Löschfristen), ersetzt diese Genehmigung aber nicht.</p>
+  </div>
+</section>
+
+<section class="section band" id="fragen" aria-labelledby="fragen-title">
+  <div class="container grid">
+    <div class="faq-wrap">
+      <div class="section-head">
+        <p class="label">Fragen</p>
+        <h2 id="fragen-title">Was Kolleginnen und Kollegen vor dem Umstieg fragen</h2>
+      </div>
+      <div class="faq">
+        <details>
+          <summary>Was kostet Notenblatt? <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="answer"><p>Nichts. Notenblatt ist kostenlos und quelloffen (MIT-Lizenz), ohne Werbung, ohne Abo und ohne Konto.</p></div>
+        </details>
+        <details>
+          <summary>Wie lange dauert die Einarbeitung? <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="answer"><p>Beim ersten Start führt eine Einführung in fünf Schritten durch die wichtigsten Einstellungen; sie dauert etwa eine Minute. Danach legen Sie eine Klasse an, fügen die Namen ein und tragen die erste Prüfung ein. Wer die Excel-Notentabelle kennt, findet sich sofort zurecht: Die Tabelle sieht ähnlich aus.</p></div>
+        </details>
+        <details>
+          <summary>Komme ich wieder an meine Daten, wenn ich aufhöre? <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="answer"><p>Ja. Jede Prüfung und jede Notenübersicht lässt sich als CSV für Excel exportieren, außerdem als PDF. Die Datensicherung (<code>.notenblatt</code>) enthält alle Daten, verschlüsselt mit Ihrem Passwort, und lässt sich auf jedem Gerät mit Notenblatt wiederherstellen.</p></div>
+        </details>
+        <details>
+          <summary>Muss die IT der Schule etwas installieren oder freigeben? <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="answer"><p>Nein. Der Installer braucht keine Administratorrechte und installiert nur für Ihr Benutzerkonto. Es gibt keinen Server zu betreiben und keine Konten zu verwalten. Updates kommen über die App selbst.</p><p>Weil der Installer nicht signiert ist, zeigt Windows beim ersten Start eine SmartScreen-Warnung; <a href="#download">so geht es weiter</a>.</p></div>
+        </details>
+        <details>
+          <summary>Kann ich Noten aus meiner bisherigen Excel-Tabelle übernehmen? <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="answer"><p>Ja, per Kopieren und Einfügen: Namen über „Namen einfügen…“, Punkte als markierten Bereich mit <kbd>Strg</kbd>+<kbd>V</kbd> direkt in die Tabelle. Ist ein Wert ungültig, etwa über der Höchstpunktzahl, wird nichts eingefügt und Notenblatt sagt, welcher.</p></div>
+        </details>
+        <details>
+          <summary>Was passiert, wenn ich das Passwort vergesse? <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="answer"><p>Dann sind die verschlüsselten Daten verloren. Es gibt bewusst keine Hintertür, auch nicht für den Entwickler. Bewahren Sie das Passwort sicher auf, etwa in einem Passwort-Manager.</p></div>
+        </details>
+        <details>
+          <summary>Kann ich auf zwei Geräten arbeiten? <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="answer"><p>Ja, nacheinander. Legen Sie die Datenbank in einen gemeinsamen Ordner, etwa auf das Netzlaufwerk, und wählen Sie ihn auf beiden Geräten. Ist sie auf einem Gerät geöffnet, meldet das andere es. Halten Sie Notenblatt auf beiden Geräten auf derselben Version.</p></div>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section download" id="download" aria-labelledby="download-title">
+  <div class="container grid">
+    <div class="dl-head">
+      <p class="label">Download</p>
+      <h2 id="download-title">Notenblatt herunterladen und in zwei Minuten loslegen</h2>
+      <p class="muted">{{DOWNLOAD_META}}. Kostenlos, ohne Konto. Was sich in jeder Version geändert hat, steht unter <a href="versionen.html">Versionen</a>.</p>
+    </div>
+    <div class="dl-options">
+      <a class="btn" href="{{X64}}">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>
+        Jetzt herunterladen
+      </a>
+      <div class="dl-alt">
+        <span>Für normale Windows-PCs und Laptops (x64)<!--if:release-->, {{X64_SIZE}}<!--end-->.</span>
+        <span>ARM-Gerät wie Surface Pro X oder Surface Pro 11? <a href="{{ARM64}}">ARM64-Version herunterladen</a><!--if:release--> ({{ARM64_SIZE}})<!--end-->.</span>
+        <span>Windows 10 oder 11. Keine Administratorrechte nötig.</span>
+      </div>
+    </div>
+    <div class="smartscreen">
+      <h3>Beim ersten Start warnt Windows</h3>
+      <ol>
+        <li>Der Installer ist nicht signiert, deshalb zeigt Windows „Der Computer wurde durch Windows geschützt“.</li>
+        <li>Klicken Sie auf <strong>„Weitere Informationen“</strong> und dann auf <strong>„Trotzdem ausführen“</strong>.</li>
+        <li>Der Installer legt Notenblatt in Ihrem Benutzerordner an (<code>%LOCALAPPDATA%\Programs\Notenblatt</code>), mit Verknüpfung auf dem Desktop.</li>
+      </ol>
+    </div>
+  </div>
+</section>

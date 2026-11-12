@@ -21,6 +21,8 @@
     "test:db": "vitest run --project db",
     "coverage": "vitest run --project unit --coverage",
     "e2e": "electron-vite build && playwright test",
+    "site:screenshots": "electron-vite build && playwright test -c playwright.site.config.ts",
+    "site:build": "node scripts/build-site.mjs --allow-placeholders",
     "icons": "node scripts/make-icons.mjs",
     "licenses": "node scripts/licenses.mjs",
     "licenses:check": "node scripts/licenses.mjs --check",
